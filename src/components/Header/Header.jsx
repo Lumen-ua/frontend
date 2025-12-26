@@ -1,12 +1,29 @@
-import React from 'react'
+import React from "react";
+import { NavLink } from "react-router-dom";
+
+import {
+  HeaderWrapper,
+  LogoLink,
+  LogoImage,
+  LogoText,
+  RightBlock,
+} from "./Header.styled";
+
+import logo from "../../assets/images/lumen-logo.webp";
 
 const Header = () => {
   return (
-    <header className="w-full bg-white border-b px-4 py-2 flex items-center justify-between">
-      <div className="font-medium text-sm">Вітаємо, UserName!</div>
-      <div className="text-xs text-gray-500">Прогрес у темах • Досягнення • Налаштування</div>
-    </header>
-  )
-}
+    <HeaderWrapper>
+      <LogoLink to="/" aria-label="Перейти на головну сторінку Lumen">
+        <LogoImage src={logo} alt="Lumen logo" />
+        <LogoText>LUMEN</LogoText>
+      </LogoLink>
+      
+      <RightBlock>
+        *future user logo*
+      </RightBlock>
+    </HeaderWrapper>
+  );
+};
 
-export default Header
+export default Header;
