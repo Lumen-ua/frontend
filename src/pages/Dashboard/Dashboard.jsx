@@ -8,9 +8,9 @@ import card2 from "../../assets/images/hero-card-2.webp";
 import card3 from "../../assets/images/hero-card-3.webp";
 
 import {
-  Page,
-  Container,
-  Title,
+  DashboardPage,
+  DashboardContainer,
+  DashboardTitle,
   ProgressLabel,
   ProgressRow,
   ProgressBar,
@@ -57,9 +57,9 @@ export default function Dashboard() {
   const goToPayments = () => navigate("/payments");
 
   return (
-    <Page>
-      <Container>
-        <Title>Welcome back, UserName !</Title>
+    <DashboardPage>
+      <DashboardContainer>
+        <DashboardTitle>Welcome back, UserName !</DashboardTitle>
 
         <ProgressLabel as="p">
           <FaFire aria-hidden="true" focusable="false" />
@@ -158,8 +158,8 @@ export default function Dashboard() {
             </MiniCardButton>
           </MiniCard>
         </CardsRow>
-      </Container>
-    </Page>
+      </DashboardContainer>
+    </DashboardPage>
   );
 }
 

@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 
-export const Page = styled.div`
+export const DashboardPage = styled.div`
   width: 100%;
   min-height: calc(100vh - var(--header-h));
   padding: 28px 28px 40px;
@@ -15,13 +15,13 @@ export const Page = styled.div`
   }
 `;
 
-export const Container = styled.div`
+export const DashboardContainer = styled.div`
   max-width: var(--container-max);
   margin: 0 auto;
 `;
 
 
-export const Title = styled.h1`
+export const DashboardTitle = styled.h1`
   margin: 0 0 8px;
   font-size: 36px;
   font-weight: 800;
