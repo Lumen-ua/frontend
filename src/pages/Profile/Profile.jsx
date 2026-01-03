@@ -28,24 +28,18 @@ import {
   InputGroup,
   AchievementRow,
   CheckIcon,
-  // Нові
   AvatarUploadWrapper,
-  HiddenFileInput,
   UploadButton,
   Divider,
   SectionTitle,
-  FormColumn // Імпортуємо наш новий контейнер
+  FormColumn
 } from './Profile.styled';
 
 export default function Profile() {
+  // Залишаємо тільки стан для перемикання вкладок (це частина UI-навігації)
   const [activeTab, setActiveTab] = useState('main');
-  
-  // Прибрали email зі стану
-  const [formData, setFormData] = useState({
-    name: "Name",
-    avatar: null
-  });
 
+  // Статичні дані для верстки
   const achievementsData = [
     { title: "Майстер Побуту", desc: "Пройти всі симуляції", done: false },
     { title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: true },
@@ -64,14 +58,6 @@ export default function Profile() {
 
   const goBack = () => setActiveTab('main');
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setFormData({ ...formData, avatar: imageUrl });
-    }
-  };
-
   return (
     <ProfileWrapper>
       
@@ -83,15 +69,11 @@ export default function Profile() {
           <UserHeaderCard>
             <UserInfo>
               <AvatarPlaceholder>
-                {formData.avatar ? (
-                  <img src={formData.avatar} alt="Avatar" />
-                ) : (
-                  <FiUser />
-                )}
+                <FiUser />
               </AvatarPlaceholder>
               <UserDetails>
                 <UserNameRow>
-                  <UserName>{formData.name}</UserName>
+                  <UserName>Name</UserName>
                   <EditButton aria-label="Редагувати" onClick={() => setActiveTab('edit')}>
                     <FiEdit2 size={18} />
                   </EditButton>
@@ -231,7 +213,7 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- РЕДАГУВАННЯ (ОНОВЛЕНО: пошта прибрана, вирівнювання виправлено) --- */}
+      {/* --- РЕДАГУВАННЯ (Тільки UI) --- */}
       {activeTab === 'edit' && (
         <>
           <BackButton onClick={goBack}>
@@ -241,30 +223,26 @@ export default function Profile() {
           <ContentCard style={{ alignItems: 'center', minHeight: 'auto', padding: '40px' }}>
             <CardTitle style={{ fontSize: '28px', marginBottom: '32px' }}>Редагувати профіль</CardTitle>
             
-            {/* Використовуємо FormColumn, щоб все було однієї ширини і рівно */}
             <FormColumn>
               
               <AvatarUploadWrapper>
                 <AvatarPlaceholder>
-                  {formData.avatar ? <img src={formData.avatar} alt="New Avatar" /> : <FiUser />}
+                  {/* Завжди показуємо іконку, бо це тільки верстка */}
+                  <FiUser />
                 </AvatarPlaceholder>
+                {/* Кнопка виглядає як клікабельна, але нічого не робить (або відкриває вікно, але не зберігає) */}
                 <UploadButton>
                   <FiCamera style={{ marginRight: '6px' }} />
                   Змінити фото
-                  <HiddenFileInput type="file" accept="image/*" onChange={handleImageChange} />
+                  {/* input прибрали або залишили без onChange, щоб він не викликав помилок */}
                 </UploadButton>
               </AvatarUploadWrapper>
 
               <InputGroup>
                 <label>Ваше ім'я</label>
-                <input 
-                  type="text" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                />
+                {/* defaultValue дозволяє писати текст, але не вимагає функцій */}
+                <input type="text" defaultValue="Name" />
               </InputGroup>
-
-              {/* Пошта прибрана */}
 
               <Divider />
 
