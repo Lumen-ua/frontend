@@ -293,9 +293,9 @@ export default function Repairs() {
                 {/* НАЯВНІСТЬ ОСАДУ АБО РЖАВЧИНИ У ВОДІ */}
                 <ProblemRow>
                   <ProblemMedia>
-                    <InfoTitle>Засмічена каналізація</InfoTitle>
+                    <InfoTitle>Наявність осаду або ржавчини у воді</InfoTitle>
                     <ProblemImage>
-                      <img src={dirtyWaterImg} alt="Засмічена каналізація" />
+                      <img src={dirtyWaterImg} alt="Наявність осаду у воді" />
                     </ProblemImage>
                   </ProblemMedia>
 
