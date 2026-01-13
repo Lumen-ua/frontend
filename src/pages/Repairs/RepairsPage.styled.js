@@ -79,6 +79,11 @@ export const CardsGrid = styled.div`
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 
+  & > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
   @media (max-width: 720px) {
     grid-template-columns: 1fr;
   }
@@ -116,7 +121,7 @@ export const InfoTitle = styled.h3`
 `;
 
 export const InfoText = styled.p`
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
   font-family: var(--font-family);
@@ -182,7 +187,7 @@ export const PageTitle = styled.div`
   border-bottom: 3px solid #000000;
 `;
 
-export const ProblemRow = styled.div`
+export const Row = styled.div`
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: 16px;
@@ -207,14 +212,14 @@ export const ProblemRow = styled.div`
   }
 `;
 
-export const ProblemMedia = styled.div`
+export const Media = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
 `;
 
-export const ProblemImage = styled.div`
+export const Image = styled.div`
   width: 100%;
   display: flex;
   justify-content: center;
@@ -226,7 +231,7 @@ export const ProblemImage = styled.div`
   }
 `;
 
-export const ProblemTextCard = styled.div`
+export const TextCard = styled.div`
   background: var(--color-surface);
   padding: 16px;
   display: flex;
@@ -234,4 +239,52 @@ export const ProblemTextCard = styled.div`
   gap: 10px;
   
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+  ul {
+    list-style: disc;          
+    padding-left: 18px;
+    margin: 8px 0;
+  }
+
+  ol {
+    list-style: decimal;
+    padding-left: 18px;
+    margin: 8px 0;
+  }
+
+  li {
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+    font-family: var(--font-family);
+  }
+`;
+
+export const CardHeader = styled.div`
+  display: inline-block;        
+  padding: 8px 12px;
+
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-family);
+
+  background: ${({ bg }) => bg};
+  border-radius: 8px;          
+
+  margin-bottom: 10px;         
+`;
+
+export const NoteBox = styled.div`
+  margin-top: 24px;
+  padding: 12px 14px;
+
+  background: #e8f7e8;        
+  border: 2px dashed #000000;     
+  border-radius: 8px;
+
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-family: var(--font-family);
 `;
