@@ -29,6 +29,7 @@ import {
   AchievementRow,
   CheckIcon,
   AvatarUploadWrapper,
+  HiddenFileInput,
   UploadButton,
   Divider,
   SectionTitle,
@@ -36,10 +37,23 @@ import {
 } from './Profile.styled';
 
 export default function Profile() {
-  // Залишаємо тільки стан для перемикання вкладок (це частина UI-навігації)
   const [activeTab, setActiveTab] = useState('main');
 
-  // Статичні дані для верстки
+  // 1. ПОЧАТКОВІ ДАНІ (Стан)
+  // Всі дані зберігаються тут, усередині компонента
+  const [user, setUser] = useState({
+    name: "Name",
+    email: "user@example.com",
+    avatar: null,
+    level: "Новачок",
+    progress: 25,
+    currentGoal: "Фінансова грамотність"
+  });
+
+  // Тимчасовий стан для форми редагування
+  const [editFormData, setEditFormData] = useState(user);
+
+  // Список досягнень (статичний, бо редагувати досягнення ми не будемо)
   const achievementsData = [
     { title: "Майстер Побуту", desc: "Пройти всі симуляції", done: false },
     { title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: true },
@@ -56,12 +70,40 @@ export default function Profile() {
   const achievementsReceived = achievementsData.filter(a => a.done).length;
   const achievementsPercent = (achievementsReceived / achievementsData.length) * 100;
 
+  // --- ФУНКЦІЇ ДЛЯ ІНТЕРАКТИВУ ---
+
   const goBack = () => setActiveTab('main');
+
+  // Обробка зміни фото (Тільки візуально в браузері)
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setEditFormData({ ...editFormData, avatar: imageUrl });
+    }
+  };
+
+  // Збереження форми редагування
+  const handleSaveProfile = () => {
+    // Переносимо дані з форми в основний об'єкт користувача
+    setUser({
+      ...user,
+      name: editFormData.name,
+      avatar: editFormData.avatar
+    });
+    goBack();
+  };
+
+  // Зміна мети
+  const handleChangeGoal = (newGoal) => {
+    setUser({ ...user, currentGoal: newGoal });
+    goBack();
+  };
 
   return (
     <ProfileWrapper>
       
-      {/* --- ГОЛОВНА --- */}
+      {/* --- ГОЛОВНА СТОРІНКА --- */}
       {activeTab === 'main' && (
         <>
           <ProfileTitle>Профіль</ProfileTitle>
@@ -69,31 +111,39 @@ export default function Profile() {
           <UserHeaderCard>
             <UserInfo>
               <AvatarPlaceholder>
-                <FiUser />
+                {user.avatar ? <img src={user.avatar} alt="Avatar" /> : <FiUser />}
               </AvatarPlaceholder>
               <UserDetails>
                 <UserNameRow>
-                  <UserName>Name</UserName>
-                  <EditButton aria-label="Редагувати" onClick={() => setActiveTab('edit')}>
+                  {/* Дані беруться зі State */}
+                  <UserName>{user.name}</UserName>
+                  <EditButton 
+                    aria-label="Редагувати" 
+                    onClick={() => {
+                      setEditFormData(user); // Заповнюємо форму поточними даними
+                      setActiveTab('edit');
+                    }}
+                  >
                     <FiEdit2 size={18} />
                   </EditButton>
                 </UserNameRow>
-                <UserLevel>Рівень: Новачок</UserLevel>
+                <UserLevel>Рівень: {user.level}</UserLevel>
               </UserDetails>
             </UserInfo>
 
             <ProgressSection>
               <ProgressLabel>
                 <span>Загальний прогрес:</span>
-                <span>25%</span>
+                <span>{user.progress}%</span>
               </ProgressLabel>
               <ProgressBarContainer>
-                <ProgressBarFill $percent={25} />
+                <ProgressBarFill $percent={user.progress} />
               </ProgressBarContainer>
             </ProgressSection>
           </UserHeaderCard>
 
           <ProfileGrid>
+            {/* Секція Досягнень */}
             <ContentCard>
               <CardHeader>
                 <CardTitle>Досягнення</CardTitle>
@@ -121,11 +171,13 @@ export default function Profile() {
               </List>
             </ContentCard>
 
+            {/* Секція Мети */}
             <ContentCard style={{ gridColumn: '1 / -1' }}> 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                 <div style={{ flex: '1 1 300px' }}>
                   <CardHeader>
-                    <CardTitle>Поточна мета: «Фінансова грамотність»</CardTitle>
+                    {/* Мета динамічна */}
+                    <CardTitle>Поточна мета: «{user.currentGoal}»</CardTitle>
                     <FiTarget size={24} />
                   </CardHeader>
                   <List>
@@ -149,7 +201,7 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВСІ ДОСЯГНЕННЯ --- */}
+      {/* --- ВКЛАДКА: ВСІ ДОСЯГНЕННЯ --- */}
       {activeTab === 'achievements' && (
         <>
           <BackButton onClick={goBack}>
@@ -176,7 +228,7 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ЗМІНА МЕТИ --- */}
+      {/* --- ВКЛАДКА: ЗМІНА МЕТИ --- */}
       {activeTab === 'goals' && (
         <>
           <BackButton onClick={goBack}>
@@ -186,7 +238,7 @@ export default function Profile() {
           <ContentCard style={{ minHeight: 'auto' }}>
             <CardTitle style={{ fontSize: '28px', marginBottom: '24px' }}>Оберіть нову мету</CardTitle>
             
-            <GoalButton onClick={goBack}>
+            <GoalButton onClick={() => handleChangeGoal("Фінансова грамотність")}>
               <div>
                 <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '800' }}>Фінансова грамотність</h3>
                 <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Навчитись вести бюджет та розуміти платіжки</p>
@@ -194,7 +246,7 @@ export default function Profile() {
               <FiArrowRight size={24} />
             </GoalButton>
 
-            <GoalButton onClick={goBack}>
+            <GoalButton onClick={() => handleChangeGoal("Енергоефективність")}>
               <div>
                 <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '800' }}>Енергоефективність</h3>
                 <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Зменшити споживання та зберегти планету</p>
@@ -202,7 +254,7 @@ export default function Profile() {
               <FiArrowRight size={24} />
             </GoalButton>
 
-            <GoalButton onClick={goBack}>
+            <GoalButton onClick={() => handleChangeGoal("Без боргів")}>
               <div>
                 <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '800' }}>Без боргів</h3>
                 <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Розібратись з боргами та пенею</p>
@@ -213,7 +265,7 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- РЕДАГУВАННЯ (Тільки UI) --- */}
+      {/* --- ВКЛАДКА: РЕДАГУВАННЯ --- */}
       {activeTab === 'edit' && (
         <>
           <BackButton onClick={goBack}>
@@ -227,22 +279,26 @@ export default function Profile() {
               
               <AvatarUploadWrapper>
                 <AvatarPlaceholder>
-                  {/* Завжди показуємо іконку, бо це тільки верстка */}
-                  <FiUser />
+                  {editFormData.avatar ? <img src={editFormData.avatar} alt="New Avatar" /> : <FiUser />}
                 </AvatarPlaceholder>
-                {/* Кнопка виглядає як клікабельна, але нічого не робить (або відкриває вікно, але не зберігає) */}
                 <UploadButton>
                   <FiCamera style={{ marginRight: '6px' }} />
                   Змінити фото
-                  {/* input прибрали або залишили без onChange, щоб він не викликав помилок */}
+                  <HiddenFileInput type="file" accept="image/*" onChange={handleImageChange} />
                 </UploadButton>
               </AvatarUploadWrapper>
 
               <InputGroup>
                 <label>Ваше ім'я</label>
-                {/* defaultValue дозволяє писати текст, але не вимагає функцій */}
-                <input type="text" defaultValue="Name" />
+                {/* Двостороннє зв'язування: value + onChange */}
+                <input 
+                  type="text" 
+                  value={editFormData.name} 
+                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} 
+                />
               </InputGroup>
+
+              {/* Пошта відсутня за вашим проханням */}
 
               <Divider />
 
@@ -258,7 +314,8 @@ export default function Profile() {
                 <input type="password" placeholder="Повторіть пароль" />
               </InputGroup>
 
-              <ActionButton onClick={goBack} style={{ marginTop: '16px' }}>
+              {/* Кнопка зберігає зміни і оновлює головний екран */}
+              <ActionButton onClick={handleSaveProfile} style={{ marginTop: '16px' }}>
                 Зберегти зміни
               </ActionButton>
 
