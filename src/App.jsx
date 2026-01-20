@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard/Dashboard'
 import Budget from './pages/Budget/Budget'
 import ReadBill from './pages/Budget/topics/ReadBill/ReadBill'
 import EnergySaving from './pages/Energy/EnergySaving'
+import Lighting from './pages/Energy/Lighting'
 import Payments from './pages/Payments/Payments'
 import Repairs from './pages/Repairs/Repairs'
 import Legal from './pages/Legal/Legal'
@@ -29,6 +30,7 @@ function App() {
           <Route path="/budget" element={<Budget />} />
           <Route path="/budget/read-bill" element={<ReadBill />} />
           <Route path="/energy" element={<EnergySaving />} />
+          <Route path="/energy/lighting" element={<Lighting />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/repairs" element={<Repairs />} />
           <Route path="/legal" element={<Legal />} />

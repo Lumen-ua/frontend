@@ -1,0 +1,51 @@
+{
+	"budget": {
+		"totalLimit": 15000,
+		"currentSpent": 8450,
+		"currency": "UAH",
+		"progress": 56,
+		"categories": [
+			{
+				"id": 1,
+				"name": "Комуналка",
+				"spent": 2400,
+				"limit": 3000
+			},
+			{
+				"id": 2,
+				"name": "Продукти",
+				"spent": 4000,
+				"limit": 6000
+			},
+			{
+				"id": 3,
+				"name": "Транспорт",
+				"spent": 1050,
+				"limit": 2000
+			}
+		]
+	},
+	"payments": [
+		{
+			"id": 101,
+			"service": "Світло (Yasno)",
+			"amount": 1200,
+			"date": "2023-11-20",
+			"status": "paid"
+		},
+		{
+			"id": 102,
+			"service": "Вода",
+			"amount": 450,
+			"date": "2023-11-22",
+			"status": "pending"
+		},
+		{
+			"id": 103,
+			"service": "Інтернет",
+			"amount": 300,
+			"date": "2023-12-01",
+			"status": "pending"
+		}
+	]
+}
