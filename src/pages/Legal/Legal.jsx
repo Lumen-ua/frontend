@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 // Імпорт іконок
 import { FiSearch, FiStar, FiLogOut } from "react-icons/fi";
 import { MdGavel, MdTabletMac, MdHelpOutline } from "react-icons/md";
@@ -23,6 +24,34 @@ import {
 } from './LegalPage.styled';
 
 const Legal = () => {
+  const navigate = useNavigate();
+
+  // --- ФУНКЦІЇ ДЛЯ ПЕРЕХОДУ НА СТОРІНКИ ---
+  
+  const handleTenantClick = () => {
+    navigate('/legal/tenant-rights');
+  };
+
+  const handleLandlordClick = () => {
+    navigate('/legal/landlord-rights');
+  };
+
+  const handleDebtsClick = () => {
+    navigate('/legal/debts');
+  };
+
+  const handleConsumptionClick = () => {
+    navigate('/legal/consumption');
+  };
+
+  const handleRepairsClick = () => {
+    navigate('/legal/repairs');
+  };
+
+  const handleCommunicationClick = () => {
+    navigate('/legal/communication');
+  };
+
   return (
     <LegalPageWrapper>
       
@@ -47,32 +76,38 @@ const Legal = () => {
 
       <LegalGrid>
         
-        <LegalCard>
+        {/* 1. Права орендаря */}
+        <LegalCard onClick={handleTenantClick}>
           <MdTabletMac size={40} color="#333" />
           <LegalCardTitle>Права орендаря</LegalCardTitle>
         </LegalCard>
 
-        <LegalCard>
+        {/* 2. Права власника */}
+        <LegalCard onClick={handleLandlordClick}>
           <FiSearch size={40} color="#333" />
           <LegalCardTitle>Права власника</LegalCardTitle>
         </LegalCard>
 
-        <LegalCard>
+        {/* 3. Борги та пеня */}
+        <LegalCard onClick={handleDebtsClick}>
           <FaKeyboard size={40} color="#333" />
           <LegalCardTitle>Борги та пеня</LegalCardTitle>
         </LegalCard>
 
-        <LegalCard>
+        {/* 4. Норми споживання (Калькулятор) */}
+        <LegalCard onClick={handleConsumptionClick}>
           <MdHelpOutline size={40} color="#333" />
           <LegalCardTitle>Норми споживання</LegalCardTitle>
         </LegalCard>
 
-        <LegalCard>
+        {/* 5. Ремонти (Гра) */}
+        <LegalCard onClick={handleRepairsClick}>
           <FiStar size={40} color="#333" />
           <LegalCardTitle>Кому що належить ремонтувати</LegalCardTitle>
         </LegalCard>
 
-        <LegalCard>
+        {/* 6. Комунікація (Конструктор) */}
+        <LegalCard onClick={handleCommunicationClick}>
           <FiLogOut size={40} color="#333" />
           <LegalCardTitle>Як вести юридичну комунікацію</LegalCardTitle>
         </LegalCard>
@@ -92,4 +127,4 @@ const Legal = () => {
   );
 };
 
-export default Legal;
+export default Legal; 

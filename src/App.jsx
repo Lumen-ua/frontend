@@ -13,6 +13,12 @@ import Lighting from './pages/Energy/Lighting'
 import Payments from './pages/Payments/Payments'
 import Repairs from './pages/Repairs/Repairs'
 import Legal from './pages/Legal/Legal'
+import TenantRights from './pages/Legal/TenantRights'
+import LandlordRights from './pages/Legal/LandlordRights'
+import Debts from './pages/Legal/Debts'
+import Consumption from './pages/Legal/Consumption/Consumption'
+import RepairsGame from './pages/Legal/RepairsGame/RepairsGame'
+import Communication from './pages/Legal/Communication/Communication'
 import Profile from './pages/Profile/Profile'
 import Simulations from './pages/Simulations/Simulations'
 
@@ -34,6 +40,12 @@ function App() {
           <Route path="/payments" element={<Payments />} />
           <Route path="/repairs" element={<Repairs />} />
           <Route path="/legal" element={<Legal />} />
+          <Route path="/legal/tenant-rights" element={<TenantRights />} />
+          <Route path="/legal/landlord-rights" element={<LandlordRights />} />
+          <Route path="/legal/debts" element={<Debts />} />
+          <Route path="/legal/consumption" element={<Consumption />} />
+          <Route path="/legal/repairs" element={<RepairsGame />} />
+          <Route path="/legal/communication" element={<Communication />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/simulations" element={<Simulations />} />
         </Route>
