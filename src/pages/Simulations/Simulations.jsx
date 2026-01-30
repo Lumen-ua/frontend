@@ -1,14 +1,43 @@
-import React from 'react'
+import React, { useState } from "react"
+import Payments from "./Payments/Payments"
+
+import {
+    Page,
+    Header,
+    HeaderIcon,
+    HeaderText,
+    PageTitle,
+    PageSub,
+    CenterHalf,
+    PayCard,
+    ButtonIcon
+} from "./Simulations.styled"
 
 const Simulations = () => {
-  return (
-    <div className="space-y-2">
-      <h1 className="text-2xl font-semibold">Simulations</h1>
-      <p className="text-sm text-gray-600">
-        "Симуляції LUMEN"
-      </p>
-    </div>
-  )
+    const [openPayments, setOpenPayments] = useState(false)
+
+    if (openPayments) {
+        return <Payments onBack={() => setOpenPayments(false)} />
+    }
+
+    return (
+        <Page>
+            <Header>
+                <HeaderIcon>📊</HeaderIcon>
+                <HeaderText>
+                    <PageTitle>Симуляція Lumen</PageTitle>
+                    <PageSub>Навчальна система для безпечної оплати</PageSub>
+                </HeaderText>
+            </Header>
+
+            <CenterHalf>
+                <PayCard onClick={() => setOpenPayments(true)}>
+                    <ButtonIcon>💳</ButtonIcon>
+                    Оплата комунальних послуг
+                </PayCard>
+            </CenterHalf>
+        </Page>
+    )
 }
 
 export default Simulations
