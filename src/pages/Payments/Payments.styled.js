@@ -11,6 +11,233 @@ export const HighlightSection = styled.div`
   color: #e65100;
 `;
 
+export const StepList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+export const StepCard = styled.div`
+  background: linear-gradient(135deg, #fff3e0, #ffffff);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+  border: 2px dashed #ff9800;
+  transition: 0.3s;
+
+  &:hover {
+    transform: translateY(-4px);
+    background: linear-gradient(135deg, #ffe0b2, #ffffff);
+  }
+`;
+
+export const StepNumber = styled.div`
+  width: 36px;
+  height: 36px;
+  background: #ff9800;
+  color: white;
+  font-weight: 700;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+`;
+
+export const StepText = styled.div`
+  font-size: 14px;
+  line-height: 1.4;
+  color: #555;
+`;
+
+export const ScreenBox = styled.div`
+  background: #111;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 13px;
+`;
+export const ModeGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+`;
+export const RefundMap = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+`;
+
+export const RefundStep = styled.div`
+  background: #f9f9f9;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: center;
+  border-top: 5px solid ${p => p.color || "#ff9800"};
+`;
+
+export const RefundIcon = styled.div`
+  font-size: 28px;
+  margin-bottom: 8px;
+`;
+
+export const RefundTitle = styled.div`
+  font-weight: 700;
+  font-size: 13px;
+`;
+
+export const RefundDesc = styled.div`
+  font-size: 12px;
+  color: #555;
+  margin-top: 6px;
+`;
+
+export const StatusBar = styled.div`
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+`;
+
+export const Status = styled.div`
+  flex: 1;
+  background: ${p => p.active ? "#fff3e0" : "#f1f1f1"};
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: ${p => p.active ? "700" : "400"};
+`;
+
+export const ModeCard = styled.div`
+  padding: 20px;
+  border-radius: 14px;
+  border: 2px solid #ffe0b2;
+  background: #fff;
+  cursor: pointer;
+  transition: .2s;
+  margin-bottom: 16px;
+  &:hover {
+    background: #fff8f1;
+    border-color: #ff9800;
+    transform: translateY(-2px);
+  }
+        ul {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+
+  ol {
+    list-style: decimal;
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+
+  li {
+    margin-bottom: 6px;
+  }
+`;
+export const Path = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+`;
+
+export const StepIcon = styled.div`
+  font-size: 30px;
+  margin-bottom: 10px;
+`;
+
+export const StepTitle = styled.div`
+  font-weight: 700;
+  color: #e65100;
+  margin-bottom: 6px;
+`;
+
+export const ModeTitle = styled.div`
+  font-weight: 800;
+  font-size: 20px;
+  color: #e65100;
+  margin-bottom: 6px;
+`;
+
+export const ModeDesc = styled.div`
+  font-size: 13px;
+  color: #555;
+
+  ul {
+    margin-top: 8px;
+    padding-left: 18px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+`;
+export const MeterGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+`;
+
+export const MeterIcon = styled.div`
+  font-size: 32px;
+  margin-bottom: 8px;
+`;
+
+export const MeterTitle = styled.div`
+  font-weight: 700;
+  color: #e65100;
+`;
+export const InfoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+`;
+
+export const InfoCard = styled.div`
+  background: #fff;
+  border: 2px solid #ffe0b2;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+`;
+
+export const InfoIcon = styled.div`
+  font-size: 28px;
+  margin-bottom: 6px;
+`;
+
+export const InfoTitle = styled.div`
+  font-weight: 700;
+  color: #e65100;
+`;
+
+export const InfoDesc = styled.div`
+  font-size: 13px;
+  color: #555;
+`;
+
+export const Matrix = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 24px 0;
+  border-radius: 14px;
+  overflow: hidden;
+`;
+
+export const MatrixCell = styled.div`
+  padding: 14px;
+  background: ${p => p.header ? "#fff3e0" : "white"};
+  border: 1px solid #ffe0b2;
+  font-weight: ${p => p.header ? "700" : "400"};
+`;
+
+
 export const TipSection = styled.div`
   background: #f1f8e9;
   border: 2px dashed #c39b4aff;
@@ -29,96 +256,10 @@ export const TipSection = styled.div`
   }
 `;
 
-export const RightColumn = styled.div`
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  min-height: 100%;
-`;
-
-export const TextTop = styled.div`
-  font-size: 12px;
-  margin-top: 40px;
-  align-self: start;
-`;
-
-export const TextBottom = styled.div`
-  font-size: 12px;
-  margin-bottom: 45px;
-  align-self: end;
-`;
-export const Hint = styled.div`
-  position: relative;
-  color: #000000ff;
-
-  &::after {
-      content: "";
-    position: absolute;
-
-    left: -223px;
-    top: 190%;
-
-    border-width: 4px 8px 4px 0;
-    border-style: solid;
-    border-color: transparent #bbb transparent transparent;
-    
-  transform-origin: left center;
-    
-  }
-
-  &::before {
-content: "";
-    position: absolute;
-
-    left: -220px;              
-    top: 201%;
-    width: 220px;
-    height: 1.2px;
-  transform: rotate(-13deg);
-  transform-origin: left center;
-    background: #ffaa00ff;
-  }
-`;
-export const Hint1 = styled.div`
-  position: relative;
-  color: #000000ff;
-
-  &::after {
-      content: "";
-    position: absolute;
-
-    left: -203px;
-    top: -15%;
-
-    border-width: 4px 8px 4px 0;
-    border-style: solid;
-    border-color: transparent #bbb transparent transparent;
-    
-  transform-origin: left center;
-    
-  }
-
-  &::before {
-content: "";
-    position: absolute;
-
-    left: -200px;              
-    top: -8%;
-    width: 195px;
-    height: 1.2px;
-  transform: rotate(6deg);
-  transform-origin: left center;
-    background: #ffaa00ff;
-  }
-`;
 export const CenterHalf = styled.div`
   display: flex;
   justify-content: center;
   margin: 24px 0;
-`;
-
-export const HalfSection = styled.div`
-  width: 50%;
-  min-width: 280px;   
 `;
 
 export const GroupTitle = styled.div`
@@ -199,10 +340,6 @@ export const GridTwo = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 `;
-export const GridVertical = styled.div`
-  columns: 2;
-  column-gap: 20px;
-`;
 
 export const Card = styled.button`
   background: var(--color-surface);
@@ -229,35 +366,11 @@ export const CardTitle = styled.div`
   font-weight: 600;
 `;
 
-
 export const ContentBox = styled.div`
   background: var(--color-surface);
   border-radius: var(--radius-3);
   padding: 24px;
   margin-top: 20px;
-`;
-
-export const Section = styled.div`
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-2);
-  padding: 16px;
-  break-inside: avoid;
-  margin-bottom: 16px;
-    ul {
-    list-style: disc;
-    padding-left: 20px;
-    margin: 8px 0;
-  }
-
-  ol {
-    list-style: decimal;
-    padding-left: 20px;
-    margin: 8px 0;
-  }
-
-  li {
-    margin-bottom: 6px;
-  }
 `;
 
 export const BackButton = styled.button`
