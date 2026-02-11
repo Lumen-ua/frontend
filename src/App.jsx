@@ -21,6 +21,7 @@ import RepairsGame from './pages/Legal/RepairsGame/RepairsGame'
 import Communication from './pages/Legal/Communication/Communication'
 import Profile from './pages/Profile/Profile'
 import Simulations from './pages/Simulations/Simulations'
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -31,7 +32,10 @@ function App() {
           <Route path="/register" element={<Register />} />
         </Route>
 
-        <Route element={<MainLayout />}>
+        <Route element={
+          <ProtectedRoute>
+           <MainLayout />
+          </ProtectedRoute>}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/budget" element={<Budget />} />
           <Route path="/budget/read-bill" element={<ReadBill />} />
