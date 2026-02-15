@@ -62,22 +62,27 @@ const getDaysLeftText = (lastCleaned, intervalDays) => {
     return `${daysLeft} дн.`;
 }
 
+
 export default function MaintenanceSection(){
+
+    //керування даними про дату останнього прибирання
     const [maintenanceState, setMaintenanceState] = useState(() => {
         const saved = localStorage.getItem('flatTamagotchi');
         return saved ? JSON.parse(saved) : {};
     });
 
+    //керування станом модального вікна
     const [selectedAppliance, setSelectedAppliance] = useState(null);
 
+    //збереження оновленого maintenanceState в localStorage
     useEffect(() => {
         localStorage.setItem('flatTamagotchi', JSON.stringify(maintenanceState));
     }, [maintenanceState]);
 
+    //оновлення maintenanceState
     const handleClean = (id) => {
         setMaintenanceState(prev => ({
-            ...prev,
-            [id]: new Date().toISOString()
+            ...prev, [id]: new Date().toISOString()
         }));
         setSelectedAppliance(null); 
     };

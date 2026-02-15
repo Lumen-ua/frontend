@@ -7,6 +7,7 @@ import ContactsSection from "./sections/Contacts";
 import SafetySection from "./sections/Safety"
 import ElectricianSection from "./sections/Elecrtician";
 import MaintenanceSection from "./sections/Maintenance";
+import EmergencySection from "./sections/Emergency";
 
 import {
   RepairsPage,
@@ -39,7 +40,7 @@ const topics = [
   { id: "checklist", title: "Чеклист перевірки квартири перед орендою" },
   { id: "maintenance", title: "Підтримуй стан квартири, щоб уникнути проблем" },
   { id: "electrician", title: "Коли викликати майстра" },
-  { id: "emergency", title: "Аварійна служба" },
+  { id: "emergency", title: "Тривожна валіза на крайній випадок" },
 ];
 
 export default function Repairs() {
@@ -100,7 +101,7 @@ export default function Repairs() {
                   <FaHammer /> Коли потрібен майстер
                 </MaterialItem>
                 <MaterialItem onClick={() => setActiveTopic("emergency")}>
-                  <FaPhoneAlt /> Коли викликати аварійну службу
+                  <FaPhoneAlt /> Збери тривожну валізу
                 </MaterialItem>
               </MaterialsList>
             </MaterialsCard>
@@ -119,23 +120,21 @@ export default function Repairs() {
               {topics.find(t => t.id === activeTopic)?.title}
             </PageTitle>
 
-            {activeTopic === "problems" && <ProblemsSection/>}
+            {activeTopic === "problems" && <ProblemsSection />}
 
-            {activeTopic === "contacts" && <ContactsSection/>}
+            {activeTopic === "contacts" && <ContactsSection />}
 
-            {activeTopic === "templates" && <TemplatesSection/>}
+            {activeTopic === "templates" && <TemplatesSection />}
 
-            {activeTopic === "safety" && <SafetySection/>}
+            {activeTopic === "safety" && <SafetySection />}
 
-            {activeTopic === "checklist" && <CheckListsSection/>}
+            {activeTopic === "checklist" && <CheckListsSection />}
 
-            {activeTopic === "maintenance" && <MaintenanceSection/>}
+            {activeTopic === "maintenance" && <MaintenanceSection />}
 
-            {activeTopic === "electrician" && <ElectricianSection/>}
+            {activeTopic === "electrician" && <ElectricianSection />}
 
-            {activeTopic === "emergency" && (
-              <p>Коли дзвонити в аварійну.</p>
-            )}
+            {activeTopic === "emergency" && <EmergencySection />}
           </>
         )}
 

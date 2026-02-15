@@ -82,7 +82,7 @@ export const InfoCard = styled.div`
 `;
 
 export const InfoIcon = styled.div`
-  font-size: 20px;
+  font-size: 22px;
 `;
 
 export const InfoTitle = styled.h3`
@@ -213,11 +213,11 @@ export const TextCard = styled.div`
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   overflow-x: hidden;
 
-   ${({ area }) => area && `grid-area: ${area};`}
+  ${({ area }) => area && `grid-area: ${area};`}
 `;
 
 export const CardHeader = styled.div`
-  display: inline-block;        
+  display: flex;       
   padding: 8px 12px;
 
   background: #FFD966;
@@ -225,6 +225,18 @@ export const CardHeader = styled.div`
   border-radius: 8px;          
 
   margin-bottom: 10px;         
+`;
+
+export const Attention = styled.div`
+  width: 100%;
+  display: flex;
+  padding: 16px;
+  align-items: center;
+  justify-content: center;
+  background: ${props => props.$saved ? "#b9f6ca" : "#F19C99"}; 
+  border-radius: 14px;
+
+  ${({ area }) => area && `grid-area: ${area};`}
 `;
 
 export const NoteBox = styled.div`
@@ -251,7 +263,7 @@ export const GreyBlock = styled.div`
   flex: 1;
   align-items: center;
   align-self: stretch;
-  
+
   ul {
     list-style: disc;          
     padding-left: 14px;
@@ -403,6 +415,20 @@ export const Actions = styled.div`
   }
 `;
 
+export const ActionsColumn = styled(Actions)`
+  padding: 0px;  
+  background: none;
+  border: none;    
+  display: flex;
+  flex-direction: column;        
+
+  & > * {
+    min-height: 56px;  
+  }     
+  
+  ${({ area }) => area && `grid-area: ${area};`}
+`;
+
 export const ActionButton = styled.button`
   display: flex;
   align-items: center;
@@ -517,7 +543,12 @@ export const TextCardYellow = styled.div`
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   overflow-x: hidden;
 
-   ${({ area }) => area && `grid-area: ${area};`}
+  ${({ area }) => area && `grid-area: ${area};`}
+`;
+
+export const TextCardBlue = styled(TextCardYellow)`
+  background: #DAE8FC;
+  ${({ area }) => area && `grid-area: ${area};`}
 `;
 
 export const ProgressContainer = styled.div`
@@ -857,3 +888,124 @@ export const CleanButton = styled.button`
   }
 `;
 
+export const CardsGridEmergency = styled.div`
+  display: grid;
+  gap: 16px; 
+  grid-template-columns: 1fr;
+  
+  grid-template-areas:
+    "top"
+    "leftTop"
+    "rightTop"
+    "leftBottom"
+    "rightBottom"
+    "bottom"
+    "buttons";
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 50% 50%;
+    grid-template-rows:
+      minmax(80px, auto)
+      minmax(280px, auto)
+      minmax(30px, auto)
+      minmax(220px, auto)
+      minmax(140px, auto)
+      minmax(100px, auto);
+
+    grid-template-areas:
+      "top top"
+      "leftTop rightTop"
+      "leftTop rightBottom"
+      "leftBottom rightBottom"
+      "leftBottom buttons"
+      "bottom bottom";
+  }
+`;
+
+export const InputWrapper = styled.div`
+  border: 1px solid #777;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px;
+`;
+
+export const StyledInput = styled.input`
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #333;
+
+  &::placeholder {
+    color: #888;
+    transition: color 0.2s;
+  }
+  &:focus::placeholder {
+    color: transparent;
+  }
+  &:focus {
+    outline: none;
+    border: none;
+  }
+`;
+
+export const ExpandableWrapper = styled.div`
+  background: #fff;
+  border: 1px solid #777;
+  border-radius: 10px;
+  overflow: hidden;
+`;
+
+export const ExpandableHeader = styled.div`
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  
+  &:hover {
+    background: #f5f5f5;
+  }
+`;
+
+export const HeaderText = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+export const Arrow = styled.span`
+  font-size: 14px;
+  color: #333;
+`;
+
+export const ExpandableBody = styled.div`
+  padding: 0 10px 10px;
+  border-top: 1px solid #eee;
+`;
+
+export const StyledTextArea = styled.textarea`
+  font-family: var(--font-family);
+  width: 100%;
+  min-height: 50px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  margin-top: 5px;
+
+  &:focus {
+    outline: none;
+    border: none;
+  }
+`;
+
+export const GreyFrame = styled.div`
+  background-color: #F4F3EE; 
+  padding: 12px 12px;        
+  border-radius: 14px;        
+  display: flex;             
+  flex-direction: column; 
+  gap: 15px; 
+  align-items: stretch;
+  align-self: stretch;
+`;
