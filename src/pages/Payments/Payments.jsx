@@ -45,6 +45,27 @@ import {
     Path,
     StepIcon,
     StepTitle,
+    BottomNavigator,
+    ChainRow,
+    ChainItem,
+    ChainButton,
+    ChainDot,
+    ChainLabel,
+    ChainLine,
+    ProgressTrack,
+    ProgressFill,
+    ControlPanel,
+    RemoteBody,
+    Led,
+    RemoteScreen,
+    ScreenMain,
+    ScreenSub,
+    MainButton,
+    NavGrid,
+    RemoteButton,
+    HomeLayout,
+    HomeMain,
+    HomeRemote
 } from "./Payments.styled";
 
 const topics = [
@@ -77,8 +98,16 @@ const enterMenu = [
     "Налаштування"
 ];
 
-export default function Payments() {
+export default function Payments({ onBack }) {
     const [activeTopic, setActiveTopic] = useState("home");
+const [visitedTopics, setVisitedTopics] = useState(["home"]);
+
+const openTopic = (id) => {
+  setActiveTopic(id);
+  setVisitedTopics(prev =>
+    prev.includes(id) ? prev : [...prev, id]
+  );
+};
 
     return (
         <Page>
@@ -95,21 +124,69 @@ export default function Payments() {
 
             {/* HOME */}
             {activeTopic === "home" && (
+            <HomeLayout>
+
+                {}
+                <HomeMain>
                 <Grid>
                     {topics
-                        .filter(t => t.id !== "home")
-                        .map(t => (
-                            <Card key={t.id} onClick={() => setActiveTopic(t.id)}>
-                                <CardIcon>{t.icon}</CardIcon>
-                                <CardTitle>{t.title}</CardTitle>
-                            </Card>
-                        ))}
+                    .filter(t => t.id !== "home")
+                    .map(t => (
+                        <Card key={t.id} onClick={() => openTopic(t.id)}>
+                        <CardIcon>{t.icon}</CardIcon>
+                        <CardTitle>{t.title}</CardTitle>
+                        </Card>
+                    ))}
                 </Grid>
+                </HomeMain>
+
+                {/* ПУЛЬТ */}
+                <HomeRemote>
+                <ControlPanel>
+                <RemoteBody>
+
+                <Led active />
+
+                <RemoteScreen>
+                <ScreenMain>ПУЛЬТ ОПЛАТИ КОМУНАЛЬНИХ ПОСЛУГ</ScreenMain>
+                <ScreenSub>Активно: {activeTopic}</ScreenSub>
+                </RemoteScreen>
+
+                <MainButton
+                onClick={() => window.location.href = "../../Simulations"}
+                >
+                ОПЛАТА
+                </MainButton>
+
+                <NavGrid>
+                <RemoteButton onClick={() => openTopic("meters")}>
+                    ПОКАЗНИКИ
+                </RemoteButton>
+
+                <RemoteButton onClick={() => openTopic("template")}>
+                    ШАБЛОНИ
+                </RemoteButton>
+
+                <RemoteButton onClick={() => openTopic("refund")}>
+                    ПОВЕРНЕННЯ
+                </RemoteButton>
+
+                <RemoteButton onClick={() => openTopic("enter")}>
+                    ЯК ЗАЙТИ
+                </RemoteButton>
+                </NavGrid>
+
+            </RemoteBody>
+            </ControlPanel>
+
+                </HomeRemote>
+
+            </HomeLayout>
             )}
 
             {/* BACK */}
             {activeTopic !== "home" && (
-                <BackButton onClick={() => setActiveTopic("home")}>
+                <BackButton onClick={() => openTopic("home")}>
                     ← Назад
                 </BackButton>
             )}
@@ -746,6 +823,39 @@ export default function Payments() {
                             </GridTwo>
                         </>
                     )}
+                    <BottomNavigator>
+
+                    <ProgressTrack>
+                        <ProgressFill
+                        style={{
+                            width: `${((visitedTopics.length - 1) / (topics.length - 1)) * 100}%`
+                        }}
+                        />
+                    </ProgressTrack>
+
+                    <ChainRow>
+                        {topics.map((t, i) => (
+                        <ChainItem key={t.id}>
+
+                            <ChainButton
+                            active={activeTopic === t.id}
+                            visited={visitedTopics.includes(t.id)}
+                            onClick={() => openTopic(t.id)}
+                            >
+                            <ChainDot
+                                active={activeTopic === t.id}
+                                visited={visitedTopics.includes(t.id)}
+                            />
+                            <ChainLabel>{t.title}</ChainLabel>
+                            </ChainButton>
+
+                            {i !== topics.length - 1 && <ChainLine />}
+
+                        </ChainItem>
+                        ))}
+                    </ChainRow>
+
+                    </BottomNavigator>
                 </ContentBox>
             )}
         </Page>
