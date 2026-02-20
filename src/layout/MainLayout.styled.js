@@ -30,13 +30,7 @@ export const FixedSidebarArea = styled.aside`
   border-right: 2px solid #1f1f1f;
 
   @media (max-width: 768px) {
-    width: 100%;
-    height: var(--sidebar-h-mobile);
-    overflow-y: hidden;
-    overflow-x: auto;
-
-    border-right: none;
-    border-bottom: 2px solid #1f1f1f;
+    display: none; /* ⬅️ тепер на мобільних sidebar не показуємо */
   }
 `;
 
@@ -51,7 +45,7 @@ export const MainContentArea = styled.main`
 
   @media (max-width: 768px) {
     padding-left: 0;
-    padding-top: calc(var(--header-h) + var(--sidebar-h-mobile));
+    padding-top: var(--header-h); /* ⬅️ без "mobile sidebar" */
     padding-right: 16px;
     padding-bottom: 16px;
   }
@@ -61,8 +55,3 @@ export const MainContentArea = styled.main`
     padding-bottom: 12px;
   }
 `;
-
-
-
-
-
