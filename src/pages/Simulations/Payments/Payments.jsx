@@ -1,260 +1,600 @@
-﻿import React, { useState, useEffect } from "react"
+﻿import React, { useEffect, useState } from "react";
 import {
-    PayCard,
-    Field,
-    Select,
-    Button,
-    HistoryItem,
-    Template,
-    BackButton,
-    HistoryCard,
-    ErrorBox,
-    SuccessBox,
-} from "./Payments.styled"
+  PayCard,
+  Field,
+  Select,
+  Button,
+  HistoryItem,
+  Template,
+  BackButton,
+  HistoryCard,
+  ErrorBox,
+  SuccessBox,
+  StatusBadge,
+  TimerText,
+  TabsRow,
+  LevelSection,
+  ProgressBarWrapper,
+  ProgressFillBar
+} from "./Payments.styled";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from "recharts";
+
+import { useAuth } from "../../../context/AuthContext";
+import { paymentsApi, dashboardApi } from "../../../api/payments";
+
+const REFUND_WINDOW = 30;
+
+const round2 = (num) => Math.round(num * 100) / 100;
+
+const SERVICE_COLORS = {
+  electricity: "#FFE066",
+  water: "#4DA6FF",
+  gas: "#42ff68",
+  internet: "#9B5DE5"
+};
 
 const TARIFFS = {
-    electricity: 4.32,
-    water: 30.5,
-    gas: 7.96,
-}
+  electricity: 4.32,
+  water: 30.5,
+  gas: 7.96
+};
 
-const METER_SERVICES = ["electricity", "water", "gas"]
+const METER_SERVICES = ["electricity", "water", "gas"];
+
+const mapStatus = (status) => {
+  if (status === 0) return "processing";
+  if (status === 1) return "approved";
+  if (status === 2) return "refunded";
+  if (status === 3) return "redirected";
+  return "processing";
+};
 
 const Payments = ({ onBack }) => {
-    const [balance, setBalance] = useState(5000)
-    const [tab, setTab] = useState("pay")
+  const { token } = useAuth();
 
-    const [service, setService] = useState("electricity")
-    const [payType, setPayType] = useState("account")
-    const [identifier, setIdentifier] = useState("")
-    const [amount, setAmount] = useState("")
-    const [history, setHistory] = useState([])
+  const [balance, setBalance] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [templates, setTemplates] = useState([]);
 
-    const [address, setAddress] = useState({
-        region: "",
-        district: "",
-        street: "",
-        house: "",
-    })
+  const [tab, setTab] = useState("pay");
 
-    const [prevMeter, setPrevMeter] = useState("")
-    const [currentMeter, setCurrentMeter] = useState("")
-    const [generatedAmount, setGeneratedAmount] = useState(0)
+  const [service, setService] = useState("electricity");
+  const [payType, setPayType] = useState("account");
+  const [identifier, setIdentifier] = useState("");
+  const [amount, setAmount] = useState("");
 
-    const [templates, setTemplates] = useState([])
-    const [templateName, setTemplateName] = useState("")
+  const [templateName, setTemplateName] = useState("");
 
-    const [error, setError] = useState("")
-    const [success, setSuccess] = useState("")
+  const [address, setAddress] = useState({
+    region: "",
+    district: "",
+    street: "",
+    house: ""
+  });
 
-    const hasMeter = METER_SERVICES.includes(service)
+  const [prevMeter, setPrevMeter] = useState("");
+  const [currentMeter, setCurrentMeter] = useState("");
+  const [generatedAmount, setGeneratedAmount] = useState("");
 
-    useEffect(() => {
-        if (!hasMeter) return
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-        if (prevMeter !== "" && currentMeter !== "" && currentMeter >= prevMeter) {
-            const consumption = currentMeter - prevMeter
-            const price = consumption * TARIFFS[service]
-            setGeneratedAmount(price.toFixed(2))
-            setAmount(price.toFixed(2))
-        }
-    }, [prevMeter, currentMeter, service, hasMeter])
+  const [redirectId, setRedirectId] = useState(null);
+  const [newIdentifier, setNewIdentifier] = useState("");
 
-    const isFormValid = () => {
-        if (payType === "account" || payType === "edrpou") {
-            if (!identifier) return false
-        }
+  const [userLevel, setUserLevel] = useState("Без досвіду");
+  const [approvedCount, setApprovedCount] = useState(0);
 
-        if (payType === "address") {
-            if (!address.region || !address.district || !address.street || !address.house)
-                return false
-        }
+  const hasMeter = METER_SERVICES.includes(service);
 
-        if (hasMeter) {
-            if (prevMeter === "" || currentMeter === "") return false
-            if (currentMeter < prevMeter) return false
-        } else {
-            if (!amount || amount <= 0) return false
-        }
+  // ===== INIT FROM BACKEND =====
+  useEffect(() => {
+    if (!token) return;
 
-        return true
+    async function load() {
+      try {
+            const historyData = await paymentsApi.getHistory(token);
+
+            const paymentsArray = Array.isArray(historyData)
+            ? historyData
+            : historyData?.payments || [];
+
+            const mapped = paymentsArray.map(p => {
+          const secondsPassed = Math.floor(
+            (Date.now() - new Date(p.createdAt)) / 1000
+          );
+
+          return {
+            id: p.id,
+            service: p.service,
+            identifier: p.identifier,
+            amount: p.amount,
+            status: mapStatus(p.status),
+            secondsLeft:
+              p.status === 0
+                ? Math.max(0, REFUND_WINDOW - secondsPassed)
+                : 0
+          };
+        });
+
+        setHistory(mapped);
+
+        const dashboard = await dashboardApi.get(token);
+
+        setBalance(dashboard.balance);
+        setApprovedCount(dashboard.approvedCount);
+        setUserLevel(dashboard.level);
+
+      } catch (e) {
+        setError(e.message);
+      }
     }
 
-    const handlePay = () => {
-        setError("")
-        setSuccess("")
+    load();
+  }, [token]);
 
-        if (!isFormValid()) {
-            setError("Заповніть всі обовʼязкові поля")
-            return
+  // ===== GLOBAL TIMER =====
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHistory(prev =>
+        prev.map(p => {
+          if (p.status === "processing" && p.secondsLeft > 0) {
+            return { ...p, secondsLeft: p.secondsLeft - 1 };
+          }
+
+          if (p.status === "processing" && p.secondsLeft === 0) {
+            return { ...p, status: "approved" };
+          }
+
+          return p;
+        })
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // ===== LEVEL AUTO UPDATE =====
+  useEffect(() => {
+    const approved = history.filter(p => p.status === "approved").length;
+    setApprovedCount(approved);
+
+    if (approved >= 10) setUserLevel("Легенда ЖКГ 🔥");
+    else if (approved >= 5) setUserLevel("Комунальний майстер 💪");
+    else if (approved >= 1) setUserLevel("Новачок 🟢");
+    else setUserLevel("Без досвіду");
+  }, [history]);
+
+  // ===== METER CALC =====
+  useEffect(() => {
+    if (!hasMeter) return;
+
+    if (prevMeter && currentMeter && Number(currentMeter) >= Number(prevMeter)) {
+      const diff = Number(currentMeter) - Number(prevMeter);
+      const price = diff * TARIFFS[service];
+      setGeneratedAmount(price.toFixed(2));
+      setAmount(price.toFixed(2));
+    }
+  }, [prevMeter, currentMeter, service]);
+
+  const nextLevelTarget =
+    approvedCount < 1 ? 1 :
+    approvedCount < 5 ? 5 :
+    approvedCount < 10 ? 10 : 10;
+
+  const progressPercent = Math.min(
+    (approvedCount / nextLevelTarget) * 100,
+    100
+  );
+
+  const dashboardData = Object.values(
+    history
+      .filter(p => p.status === "approved")
+      .reduce((acc, p) => {
+        if (!acc[p.service]) {
+          acc[p.service] = { service: p.service, total: 0 };
         }
+        acc[p.service].total = round2(
+            acc[p.service].total + Number(p.amount)
+        );
 
-        if (Number(amount) > balance) {
-            setError("Недостатньо коштів на рахунку")
-            return
-        }
+        return acc;
+      }, {})
+  );
 
-        const finalIdentifier =
-            payType === "address"
-                ? `${address.region}, ${address.district}, ${address.street}, буд. ${address.house}`
-                : identifier
+  const isFormValid = () => {
+    if (payType !== "address" && !identifier) return false;
 
-        setBalance(prev => prev - Number(amount))
-        setHistory([
-            {
-                service,
-                identifier: finalIdentifier,
-                amount,
-                date: new Date().toLocaleString(),
-            },
-            ...history,
-        ])
-
-        setIdentifier("")
-        setAddress({ region: "", district: "", street: "", house: "" })
-        setPrevMeter("")
-        setCurrentMeter("")
-        setAmount("")
-
-        setSuccess("Оплата успішна 🎉")
-        setTimeout(() => setSuccess(""), 3000)
+    if (payType === "address") {
+      const { region, district, street, house } = address;
+      if (!region || !district || !street || !house) return false;
     }
 
-    const saveTemplate = () => {
-        if (!templateName) {
-            setError("Введіть назву шаблону")
-            return
-        }
-
-        setTemplates(prev => [
-            ...prev,
-            { name: templateName, service, payType, identifier, address },
-        ])
-
-        setTemplateName("")
-        setSuccess("Шаблон збережено 💾")
-        setTimeout(() => setSuccess(""), 2500)
+    if (hasMeter) {
+      if (!prevMeter || !currentMeter) return false;
+    } else {
+      if (!amount || Number(amount) <= 0) return false;
     }
 
-    const applyTemplate = tpl => {
-        setService(tpl.service)
-        setPayType(tpl.payType)
-        setIdentifier(tpl.identifier)
-        setAddress(tpl.address)
-        setTab("pay")
+    return true;
+  };
+
+  // ===== PAY =====
+  const handlePay = async () => {
+    setError("");
+    setSuccess("");
+
+    if (!isFormValid()) {
+      setError("Заповніть всі поля");
+      return;
     }
 
-    return (
-        <div style={{ padding: 32 }}>
-            <BackButton onClick={onBack}>← Назад до симуляцій</BackButton>
+    try {
+      const finalIdentifier =
+        payType === "address"
+          ? `${address.region}, ${address.district}, ${address.street}, буд. ${address.house}`
+          : identifier;
 
-            <h1 style={{ fontSize: 32, fontWeight: 800 }}>{balance} ₴</h1>
+      const payment = await paymentsApi.create(token, {
+        service,
+        identifier: finalIdentifier,
+        amount: Number(amount)
+      });
 
-            {success && <SuccessBox>{success}</SuccessBox>}
+      setBalance(b => b - Number(amount));
 
-            <PayCard style={{ display: "flex", gap: 8 }}>
-                <Button onClick={() => setTab("pay")}>Оплата</Button>
-                <Button onClick={() => setTab("templates")}>Шаблони</Button>
-            </PayCard>
+      setHistory(prev => [
+        {
+          id: payment.id,
+          service: payment.service,
+          identifier: payment.identifier,
+          amount: payment.amount,
+          status: "processing",
+          secondsLeft: REFUND_WINDOW
+        },
+        ...prev
+      ]);
 
-            {tab === "pay" && (
-                <PayCard>
-                    {error && <ErrorBox>{error}</ErrorBox>}
+      setSuccess("Платіж відправлено в банк");
 
-                    <Select value={service} onChange={e => setService(e.target.value)}>
-                        <option value="electricity">Електроенергія</option>
-                        <option value="water">Вода</option>
-                        <option value="gas">Газ</option>
-                        <option value="internet">Інтернет</option>
-                        <option value="heating">Опалення</option>
-                    </Select>
+    } catch (e) {
+      setError(e.message);
+    }
+  };
 
-                    <Select value={payType} onChange={e => setPayType(e.target.value)}>
-                        <option value="account">За особовим рахунком</option>
-                        <option value="address">За адресою</option>
-                        <option value="edrpou">За ЄДРПОУ</option>
-                    </Select>
+  // ===== REFUND =====
+  const refundPayment = async (p) => {
+    try {
+      await paymentsApi.refund(token, p.id);
 
-                    {payType !== "address" && (
-                        <Field
-                            $invalid={!identifier}
-                            placeholder={payType === "account" ? "Особовий рахунок" : "ЄДРПОУ"}
-                            value={identifier}
-                            onChange={e => setIdentifier(e.target.value)}
-                        />
-                    )}
+      setBalance(b => b + p.amount);
 
-                    {payType === "address" && (
-                        <>
-                            <Field $invalid={!address.region} placeholder="Область" value={address.region} onChange={e => setAddress(p => ({ ...p, region: e.target.value }))} />
-                            <Field $invalid={!address.district} placeholder="Район" value={address.district} onChange={e => setAddress(p => ({ ...p, district: e.target.value }))} />
-                            <Field $invalid={!address.street} placeholder="Вулиця" value={address.street} onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} />
-                            <Field $invalid={!address.house} placeholder="Будинок" value={address.house} onChange={e => setAddress(p => ({ ...p, house: e.target.value }))} />
-                        </>
-                    )}
+      setHistory(prev =>
+        prev.map(x =>
+          x.id === p.id
+            ? { ...x, status: "refunded", secondsLeft: 0 }
+            : x
+        )
+      );
 
-                    {hasMeter && (
-                        <>
-                            <Field $invalid={prevMeter === ""} type="number" placeholder="Попередні показники" value={prevMeter} onChange={e => setPrevMeter(Number(e.target.value))} />
-                            <Field $invalid={currentMeter === "" || currentMeter < prevMeter} type="number" placeholder="Поточні показники" value={currentMeter} onChange={e => setCurrentMeter(Number(e.target.value))} />
-                            {generatedAmount > 0 && <p>Нараховано: <strong>{generatedAmount} ₴</strong></p>}
-                        </>
-                    )}
+      setSuccess("Кошти повернено");
 
-                    {!hasMeter && (
-                        <Field
-                            $invalid={!amount || amount <= 0}
-                            type="number"
-                            placeholder="Сума, ₴"
-                            value={amount}
-                            onChange={e => setAmount(Number(e.target.value))}
-                        />
-                    )}
+    } catch (e) {
+      setError(e.message);
+    }
+  };
 
-                    <Field
-                        placeholder="Назва шаблону"
-                        value={templateName}
-                        onChange={e => setTemplateName(e.target.value)}
-                    />
+  const redirectPayment = (p) => {
+    if (!newIdentifier) {
+      setError("Введіть нові реквізити");
+      return;
+    }
 
-                    <Button onClick={saveTemplate}>Зберегти шаблон</Button>
+    setHistory(prev =>
+      prev.map(x =>
+        x.id === p.id
+          ? { ...x, identifier: newIdentifier, status: "redirected" }
+          : x
+      )
+    );
 
-                    <Button onClick={handlePay} disabled={!isFormValid()}>
-                        Оплатити
-                    </Button>
-                </PayCard>
+    setRedirectId(null);
+    setNewIdentifier("");
+    setSuccess("Платіж перенаправлено");
+  };
+
+  const statusText = (s) => {
+    if (s === "processing") return "В обробці";
+    if (s === "approved") return "Підтверджено";
+    if (s === "refunded") return "Повернено";
+    if (s === "redirected") return "Перенаправлено";
+  };
+
+  const saveTemplate = () => {
+    if (!templateName) {
+      setError("Введіть назву шаблону");
+      return;
+    }
+
+    const newTemplate = {
+      id: "t" + Date.now(),
+      name: templateName,
+      service,
+      type: payType,
+      value: payType === "address" ? address : identifier
+    };
+
+    setTemplates(prev => [...prev, newTemplate]);
+    setTemplateName("");
+    setSuccess("Шаблон збережено");
+  };
+
+  const applyTemplate = (tpl) => {
+    setService(tpl.service);
+    setPayType(tpl.type);
+
+    if (tpl.type === "address") {
+      setAddress(tpl.value);
+      setIdentifier("");
+    } else {
+      setIdentifier(tpl.value);
+    }
+
+    setTab("pay");
+  };
+
+  const deleteTemplate = (id) => {
+    setTemplates(prev => prev.filter(t => t.id !== id));
+  };
+
+  return (
+    <div style={{ padding: 30 }}>
+
+      <BackButton onClick={onBack}>← Назад</BackButton>
+
+      <h1>{balance.toFixed(2)} ₴</h1>
+    <LevelSection>
+            <p>🎮 Рівень: <b>{userLevel}</b></p>
+            <p>Підтверджених платежів: {approvedCount}</p>
+
+            <ProgressBarWrapper>
+              <ProgressFillBar width={progressPercent} />
+            </ProgressBarWrapper>
+          </LevelSection>
+
+          {error && <ErrorBox>{error}</ErrorBox>}
+          {success && <SuccessBox>{success}</SuccessBox>}
+<TabsRow>
+  <Button $tab $active={tab === "pay"} onClick={() => setTab("pay")}>
+    Оплата
+  </Button>
+
+  <Button $tab $active={tab === "templates"} onClick={() => setTab("templates")}>
+    Шаблони
+  </Button>
+
+  <Button $tab $active={tab === "history"} onClick={() => setTab("history")}>
+    Історія
+  </Button>
+
+  <Button $tab $active={tab === "refunds"} onClick={() => setTab("refunds")}>
+    Повернення
+  </Button>
+  <Button $tab $active={tab === "dashboard"} onClick={() => setTab("dashboard")}>
+  Dashboard
+</Button>
+
+</TabsRow>
+
+
+      {/* ===== PAY ===== */}
+      {tab === "pay" && (
+        <PayCard>
+          <Select value={service} onChange={e => setService(e.target.value)}>
+            <option value="electricity">Електроенергія</option>
+            <option value="water">Вода</option>
+            <option value="gas">Газ</option>
+            <option value="internet">Інтернет</option>
+          </Select>
+
+          <Select value={payType} onChange={e => setPayType(e.target.value)}>
+            <option value="account">Особовий рахунок</option>
+            <option value="address">Адреса</option>
+            <option value="edrpou">ЄДРПОУ</option>
+          </Select>
+
+          {payType !== "address" && (
+            <Field
+              placeholder={payType === "edrpou" ? "ЄДРПОУ" : "Особовий рахунок"}
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
+            />
+          )}
+
+          {payType === "address" && (
+            <>
+              <Field placeholder="Область" value={address.region}
+                onChange={e => setAddress(p => ({ ...p, region: e.target.value }))} />
+              <Field placeholder="Район" value={address.district}
+                onChange={e => setAddress(p => ({ ...p, district: e.target.value }))} />
+              <Field placeholder="Вулиця" value={address.street}
+                onChange={e => setAddress(p => ({ ...p, street: e.target.value }))} />
+              <Field placeholder="Будинок" value={address.house}
+                onChange={e => setAddress(p => ({ ...p, house: e.target.value }))} />
+            </>
+          )}
+
+          {hasMeter && (
+            <>
+              <Field type="number" placeholder="Попередні" value={prevMeter}
+                onChange={e => setPrevMeter(e.target.value)} />
+              <Field type="number" placeholder="Поточні" value={currentMeter}
+                onChange={e => setCurrentMeter(e.target.value)} />
+              {generatedAmount && <p>Нараховано: <b>{generatedAmount} ₴</b></p>}
+            </>
+          )}
+
+          {!hasMeter && (
+            <Field type="number" placeholder="Сума ₴"
+              value={amount} onChange={e => setAmount(e.target.value)} />
+          )}
+
+          <Field placeholder="Назва шаблону"
+            value={templateName}
+            onChange={e => setTemplateName(e.target.value)} />
+
+          <Button onClick={saveTemplate}>Зберегти шаблон</Button>
+          <Button onClick={handlePay}>Оплатити</Button>
+        </PayCard>
+      )}
+
+      {/* ===== TEMPLATES ===== */}
+      {tab === "templates" && (
+        <PayCard>
+          {templates.map(tpl => (
+            <Template key={tpl.id} onClick={() => applyTemplate(tpl)}>
+              <strong>{tpl.name}</strong>
+              <div>{tpl.service}</div>
+              <Button onClick={() => deleteTemplate(tpl.id)}>🗑</Button>
+            </Template>
+          ))}
+        </PayCard>
+      )}
+
+      {/* ===== HISTORY ===== */}
+      {tab === "history" && (
+        <HistoryCard>
+          {history.map(p => (
+            <HistoryItem key={p.id}>
+              <div>
+                <b>{p.service}</b>
+                <div>{p.identifier}</div>
+                <StatusBadge $status={p.status}>
+                  {statusText(p.status)}
+                </StatusBadge>
+              </div>
+
+              <div>
+                <b>-{p.amount.toFixed(2)} ₴</b>
+                {p.status === "processing" && (
+                  <TimerText>{p.secondsLeft} сек</TimerText>
+                )}
+              </div>
+            </HistoryItem>
+          ))}
+        </HistoryCard>
+      )}
+
+      {/* ===== REFUNDS ===== */}
+{tab === "refunds" && (
+  <HistoryCard>
+    {history
+      .map(p => (
+        <HistoryItem key={p.id} $status={p.status}>
+          <div>
+            <b
+              style={{
+                textDecoration:
+                  p.status === "refunded"
+                    ? "line-through"
+                    : "none"
+              }}
+            >
+              {p.service}
+            </b>
+
+            <div
+              style={{
+                textDecoration:
+                  p.status === "refunded"
+                    ? "line-through"
+                    : "none"
+              }}
+            >
+              {p.identifier}
+            </div>
+
+            <StatusBadge $status={p.status}>
+              {statusText(p.status)}
+            </StatusBadge>
+
+            {p.status === "processing" && (
+              <TimerText>
+                Залишилось: {p.secondsLeft} сек
+              </TimerText>
+            )}
+          </div>
+
+          <div>
+            {p.status === "processing" && (
+              <Button onClick={() => refundPayment(p)}>
+                ↩ Повернути
+              </Button>
             )}
 
-            {tab === "templates" && (
-                <PayCard>
-                    {templates.length === 0 && <p>Шаблонів ще немає</p>}
-                    {templates.map((tpl, i) => (
-                        <Template key={i} onClick={() => applyTemplate(tpl)}>
-                            <strong>{tpl.name}</strong>
-                            <div style={{ fontSize: 12 }}>{tpl.service}</div>
-                        </Template>
-                    ))}
-                </PayCard>
+            {p.status !== "refunded" && (
+              <Button onClick={() => setRedirectId(p.id)}>
+                🔁 Перенаправити
+              </Button>
             )}
+            {redirectId === p.id && (
+              <>
+                <Field
+                  placeholder="Нові реквізити"
+                  value={newIdentifier}
+                  onChange={e => setNewIdentifier(e.target.value)}
+                />
+                <Button onClick={() => redirectPayment(p)}>
+                  OK
+                </Button>
+              </>
+            )}
+          </div>
+        </HistoryItem>
+      ))}
+  </HistoryCard>
+)}
 
-            <HistoryCard>
-                <h4>Історія платежів</h4>
-                {history.length === 0 && <p>Платежів ще немає</p>}
-                {history.map((p, i) => (
-                    <HistoryItem key={i}>
-                        <div>
-                            <strong>{p.service}</strong>
-                            <div style={{ fontSize: 12 }}>{p.identifier}</div>
-                        </div>
-                        <div>
-                            <strong>-{p.amount} ₴</strong>
-                            <div style={{ fontSize: 12 }}>{p.date}</div>
-                        </div>
-                    </HistoryItem>
-                ))}
-            </HistoryCard>
-        </div>
-    )
-}
+{tab === "dashboard" && (
+  <PayCard>
+    <h2>📊 Аналітика витрат</h2>
 
-export default Payments
+    {dashboardData.length === 0 && (
+      <p>Немає підтверджених платежів</p>
+    )}
+
+    {dashboardData.length > 0 && (
+  <ResponsiveContainer width="100%" height={300}>
+    <BarChart data={dashboardData}>
+      <XAxis dataKey="service" />
+      <YAxis />
+      <Tooltip formatter={(value) => `${value.toFixed(2)} ₴`} />
+      <Bar dataKey="total">
+        {dashboardData.map((entry, index) => (
+          <Cell
+            key={`cell-${index}`}
+            fill={SERVICE_COLORS[entry.service] || "#8884d8"}
+          />
+        ))}
+      </Bar>
+    </BarChart>
+  </ResponsiveContainer>
+)}
+
+  </PayCard>
+)}
+
+    </div>
+  );
+};
+
+export default Payments;
