@@ -1,6 +1,17 @@
 import styled from "styled-components"
 
-/* Основні картки */
+export const getPaymentsPageData = () => {
+  return Promise.resolve({
+    balance: mockData.user.balance,
+    history: mockData.paymentsHistory,
+    templates: mockData.templates
+  })
+}
+
+export const payService = () => {
+  return Promise.resolve(mockData.paymentResult)
+}
+/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ */
 export const PayCard = styled.div`
   background: linear-gradient(135deg, #fff3e0, #ffffff);
   border-radius: 18px;
@@ -15,7 +26,7 @@ export const PayCard = styled.div`
   }
 `
 
-/* Поля вводу */
+/* пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ */
 export const Field = styled.input`
   width: 100%;
   padding: 11px 12px;
@@ -48,26 +59,25 @@ export const Select = styled.select`
   }
 `
 
-/* Кнопки */
+/* пїЅпїЅпїЅпїЅпїЅпїЅ */
 export const Button = styled.button`
-  width: 100%;
-  padding: 14px;
-  background: #ff9800;
-  color: white;
+  width: ${({ $tab }) => ($tab ? "auto" : "100%")};
+  padding: 12px 18px;
+  background: ${({ $active }) => ($active ? "#ff9800" : "#fbd295")};
+  color: ${({ $active }) => ($active ? "white" : "#ff6f00")};
   border: none;
   border-radius: 14px;
   font-weight: 700;
   cursor: pointer;
-  margin-bottom: 10px;
   transition: 0.25s;
-  opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
-  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+  white-space: nowrap;
 
   &:hover {
-    background: ${({ disabled }) => (disabled ? "#ff9800" : "#fb8c00")};
-    transform: ${({ disabled }) => (disabled ? "none" : "translateY(-1px)")};
+    background: ${({ $active }) => ($active ? "#fb8c00" : "#ffc561")};
+    transform: translateY(-1px);
   }
-`
+`;
+
 
 export const ErrorBox = styled.div`
   background: #ffebee;
@@ -87,18 +97,26 @@ export const SuccessBox = styled.div`
   font-weight: 700;
 `
 
-/* Історія платежів */
+/* пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
 export const HistoryItem = styled.div`
-  padding: 12px 14px;
-  border-bottom: 1px solid #ffe0b2;
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 10px;
 
-  &:last-child {
-    border-bottom: none;
-  }
-`
+  background: ${props =>
+    props.$status === "refunded" ? "#f3f3f3" : "white"};
+
+  opacity: ${props =>
+    props.$status === "refunded" ? 0.6 : 1};
+
+  filter: ${props =>
+    props.$status === "refunded" ? "grayscale(30%)" : "none"};
+
+  transition: 0.3s;
+`;
+
 
 export const BackButton = styled.button`
   background: none;
@@ -123,7 +141,7 @@ export const HistoryCard = styled.div`
   border: 2px solid #ff9800;
 `
 
-/* Шаблони */
+/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
 export const Template = styled.div`
   background: #fff;
   border-radius: 16px;
@@ -142,3 +160,49 @@ export const Template = styled.div`
     color: #ff8400;
   }
 `
+export const StatusBadge = styled.div`
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+
+  background: ${({ status }) =>
+    status === "processing" ? "#ff9800" :
+    status === "approved" ? "#4caf50" :
+    status === "refunded" ? "#9e9e9e" :
+    "#03a9f4"};
+`;
+
+export const TimerText = styled.div`
+  margin-top: 6px;
+  font-size: 12px;
+  color: #ff6f00;
+  font-weight: 700;
+`;
+export const TabsRow = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+`;
+
+export const LevelSection = styled.div`
+  margin-bottom: 20px;
+`;
+
+export const ProgressBarWrapper = styled.div`
+  height: 8px;
+  background: #eee;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 5px;
+`;
+
+export const ProgressFillBar = styled.div`
+  width: ${props => props.width}%;
+  height: 100%;
+  background: linear-gradient(90deg, #6C63FF, #00C9A7);
+  transition: 0.3s;
+`;
