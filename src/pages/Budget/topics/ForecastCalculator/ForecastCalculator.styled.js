@@ -22,12 +22,11 @@ export const TopTitle = styled.h1`
   span {
     font-size: 18px;
     font-weight: 900;
-    color: rgba(0,0,0,0.55);
+    color: rgba(0, 0, 0, 0.55);
   }
 
   @media (max-width: 520px) {
     font-size: 22px;
-
     span {
       font-size: 14px;
     }
@@ -40,13 +39,13 @@ export const TopSubTitle = styled.p`
   font-weight: 700;
   line-height: 1.45;
   color: ${muted};
-  max-width: 860px;
+  max-width: 980px;
 `;
 
-export const ContentGrid = styled.div`
+export const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
@@ -56,15 +55,9 @@ export const ContentGrid = styled.div`
 export const Card = styled.section`
   background: #fff;
   border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.10);
   box-shadow: 0 10px 30px rgba(0,0,0,0.04);
   overflow: hidden;
-
-  ${({ $span2 }) => ($span2 ? "grid-column: 1 / -1;" : "")}
-
-  @media (max-width: 980px) {
-    grid-column: auto;
-  }
 `;
 
 export const CardHeader = styled.div`
@@ -100,25 +93,6 @@ export const CardBody = styled.div`
   padding: 0 14px 14px;
 `;
 
-export const Split = styled.div`
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 14px;
-  align-items: start;
-
-  @media (max-width: 980px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const SplitLeft = styled.div`
-  min-width: 0;
-`;
-
-export const SplitRight = styled.div`
-  min-width: 0;
-`;
-
 export const Paragraph = styled.p`
   margin: 8px 0;
   font-size: 13px;
@@ -132,11 +106,21 @@ export const MiniTitle = styled.div`
   font-size: 13px;
   font-weight: 900;
   color: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
-export const Muted = styled.span`
-  color: ${muted};
-  font-weight: 800;
+export const IconChip = styled.span`
+  width: 22px;
+  height: 22px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,179,64,0.18);
+  border: 1px solid rgba(255,179,64,0.25);
+  font-size: 13px;
 `;
 
 export const BulletList = styled.ul`
@@ -146,54 +130,16 @@ export const BulletList = styled.ul`
   li {
     margin: 6px 0;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.4;
     color: rgba(0,0,0,0.75);
   }
 `;
 
-export const Divider = styled.div`
-  height: 1px;
-  background: rgba(0,0,0,0.08);
-  margin: 12px 0;
-`;
-
-export const Figure = styled.figure`
-  margin: 0;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.10);
-  background: #fff;
-`;
-
-export const FigureTop = styled.div`
-  background: ${accent};
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(0,0,0,0.12);
-`;
-
-export const FigureTopTitle = styled.div`
-  font-size: 13px;
-  font-weight: 900;
-`;
-
-export const FigureBody = styled.div`
-  padding: 10px;
-
-  img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 10px;
-    border: 1px solid rgba(0,0,0,0.10);
-    background: #f7f7f7;
-  }
-`;
-
 export const NoteBox = styled.div`
   margin-top: 10px;
-  background: rgba(255, 179, 64, 0.18);
-  border: 1px solid rgba(255, 179, 64, 0.35);
+  background: rgba(255,179,64,0.16);
+  border: 1px solid rgba(255,179,64,0.30);
   border-radius: 12px;
   padding: 10px 10px;
 `;
@@ -211,33 +157,98 @@ export const NoteList = styled.ul`
   li {
     margin: 6px 0;
     font-size: 13px;
-    font-weight: 700;
-    color: rgba(0,0,0,0.78);
+    font-weight: 800;
+    color: rgba(0,0,0,0.75);
+    line-height: 1.35;
   }
+`;
+
+export const ExampleBox = styled.div`
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(0,0,0,0.02);
+  padding: 10px 10px;
+`;
+
+export const ExampleTitle = styled.div`
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 8px;
+`;
+
+export const ExampleRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+`;
+
+export const ExampleCell = styled.div`
+  font-size: 13px;
+  font-weight: ${({ $bold }) => ($bold ? 900 : 800)};
+  color: ${({ $muted }) => ($muted ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.78)")};
+`;
+
+export const Divider = styled.div`
+  height: 1px;
+  background: rgba(0,0,0,0.08);
+  margin: 10px 0;
+`;
+
+export const Pill = styled.div`
+  margin-top: 10px;
+  width: fit-content;
+  background: rgba(255,179,64,0.25);
+  border: 1px solid rgba(255,179,64,0.35);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.7);
 `;
 
 export const TwoCols = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 6px;
+  gap: 12px;
+  margin-top: 8px;
 
-  @media (max-width: 980px) {
+  @media (max-width: 520px) {
     grid-template-columns: 1fr;
   }
 `;
 
-export const Bubble = styled.div`
-  margin-top: 12px;
-  background: rgba(255, 179, 64, 0.25);
-  border: 1px solid rgba(255, 179, 64, 0.35);
-  border-radius: 999px;
-  padding: 10px 12px;
-  font-size: 12.5px;
-  font-weight: 900;
-  color: rgba(0,0,0,0.7);
-  width: fit-content;
+export const FormulaBar = styled.div`
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,179,64,0.30);
+  background: rgba(255,179,64,0.20);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
+
+export const FormulaTitle = styled.div`
+  font-size: 13px;
+  font-weight: 900;
+`;
+
+export const FormulaText = styled.div`
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.75);
+`;
+
 
 export const BackBtn = styled.button`
   margin-bottom: 14px;
@@ -256,18 +267,5 @@ export const BackBtn = styled.button`
 
   &:active {
     transform: translateY(1px);
-  }
-`;
-
-export const StepsList = styled.ol`
-  margin: 10px 0 0;
-  padding-left: 18px;
-
-  li {
-    margin: 6px 0;
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1.4;
-    color: rgba(0,0,0,0.72);
   }
 `;

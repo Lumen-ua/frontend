@@ -1,240 +1,399 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  ReadBillPage,
-  ReadBillContainer,
-  ReadBillHeader,
-  ReadBillHeaderTop,
-  ReadBillTitle,
-  ReadBillSubTitle,
-  ReadBillProgress,
-  ReadBillOrangeBar,
-  ReadBillBillImageWrap,
-  ReadBillBillImage,
-  ReadBillMainGrid,
-  ReadBillSectionCard,
-  ReadBillSectionHeader,
-  ReadBillSectionTitle,
-  ReadBillCardText,
-  ReadBillList,
-  ReadBillDivider,
-  ReadBillMiniCard,
-  ReadBillMiniCardTitle,
-  ReadBillMiniCardText,
-  ReadBillCalcBox,
-  ReadBillCalcTitle,
-  ReadBillCalcRow,
-  ReadBillInput,
-  ReadBillButton,
-  ReadBillFootnote,
-  ReadBillTable,
-  ReadBillTableHead,
-  ReadBillTableRow,
-  ReadBillTableCell,
-  ReadBillMuted,
+  Page,
+  Container,
+  BackBtn,
+  TopTitle,
+  TopSubTitle,
+  ContentGrid,
+  Card,
+  CardHeader,
+  Badge,
+  CardTitle,
+  CardBody,
+  Split,
+  SplitLeft,
+  SplitRight,
+  Paragraph,
+  BulletList,
+  MiniTitle,
+  Muted,
+  Figure,
+  FigureTop,
+  FigureTopTitle,
+  FigureBody,
+  NoteBox,
+  NoteTitle,
+  NoteList,
+  TwoCols,
+  Bubble,
+  StepsList,
+  Divider,
 } from "./ReadBill.styled";
 
-import billPhoto from "../../../../assets/images/bill-photo.webp";
+import billImg from "../../../../assets/images/bill-photo.jpg";
+import ReadBillSim from "../../simulations/ReadBillSim/ReadBillSim";
 
 export default function ReadBill() {
-  const progress = 10;
+  const navigate = useNavigate();
 
   return (
-    <ReadBillPage>
-      <ReadBillContainer>
-        <ReadBillHeader>
-          <ReadBillHeaderTop>
-            <div>
-              <ReadBillTitle>Як читати платіжку</ReadBillTitle>
-              <ReadBillSubTitle>
-                Розберемо покроково, що означає кожен пункт платіжки за електроенергію
-              </ReadBillSubTitle>
-            </div>
+    <Page>
+      <Container>
+        <BackBtn type="button" onClick={() => navigate("/budget")}>
+          ← Назад до “Бюджет та рахунки”
+        </BackBtn>
 
-            <ReadBillProgress aria-label={`Прогрес ${progress}%`}>
-              прогрес {progress}%
-            </ReadBillProgress>
-          </ReadBillHeaderTop>
+        <TopTitle>
+          Як читати платіжку за електроенергію{" "}
+          <span>(на прикладі платіжки ДТЕК / YASNO)</span>
+        </TopTitle>
 
-          <ReadBillOrangeBar $big>Структура платіжки</ReadBillOrangeBar>
+        <TopSubTitle>
+          Платіжка — це не просто “рахунок за світло”. У ній є чітка логіка: хто
+          виставив рахунок, які показники враховано, як порахована сума та до
+          коли потрібно сплатити.
+        </TopSubTitle>
 
-          <ReadBillBillImageWrap>
-            <ReadBillBillImage
-              src={billPhoto}
-              alt="Приклад платіжки за електроенергію з позначеними полями"
-              loading="lazy"
-            />
-          </ReadBillBillImageWrap>
-        </ReadBillHeader>
+        <ContentGrid>
+          {/* 1) Загальна структура (теорія) */}
+          <Card $span2>
+            <CardHeader>
+              <Badge>1</Badge>
+              <CardTitle>Загальна структура платіжки (теорія)</CardTitle>
+            </CardHeader>
 
-        {/* ✅ Новий layout: 3 колонки grid + секції як окремі “items” */}
-        <ReadBillMainGrid>
-          {/* 1) Тарифікація */}
-          <ReadBillSectionCard>
-            <ReadBillSectionHeader>
-              <ReadBillSectionTitle>Тарифікація</ReadBillSectionTitle>
-            </ReadBillSectionHeader>
+            <CardBody>
+              <Paragraph>
+                Платіжка за електроенергію складається з кількох логічних блоків.
+                Кожен блок виконує окрему функцію:
+              </Paragraph>
 
-            <ReadBillMiniCard>
-              <ReadBillMiniCardTitle>Одноставковий тариф</ReadBillMiniCardTitle>
-              <ReadBillMiniCardText>
-                <ReadBillList>
-                  <li>Тариф один для всієї доби.</li>
-                  <li>Ціна за 1 кВт·год однакова незалежно від часу.</li>
+              <BulletList>
+                <li>
+                  <b>Ідентифікація сторін</b> — хто отримувач, хто клієнт, який
+                  особовий рахунок.
+                </li>
+                <li>
+                  <b>Показники лічильника</b> — попередні/поточні значення, на
+                  основі яких рахується споживання.
+                </li>
+                <li>
+                  <b>Розрахунок вартості</b> — споживання (кВт·год) × тариф.
+                </li>
+                <li>
+                  <b>Підсумкова сума</b> — враховує нарахування, борг/переплату,
+                  оплати, дедлайн.
+                </li>
+                <li>
+                  <b>Ідентифікатори об’єкта</b> — EIC-код.
+                </li>
+                <li>
+                  <b>Спосіб оплати</b> — QR-код та реквізити.
+                </li>
+              </BulletList>
+
+              <NoteBox>
+                <NoteTitle>Швидка логіка:</NoteTitle>
+                <NoteList>
+                  <li>Зняли показники →</li>
+                  <li>порахували споживання →</li>
+                  <li>множимо на тариф →</li>
+                  <li>коригуємо борг/переплату →</li>
+                  <li>отримуємо суму до сплати.</li>
+                </NoteList>
+              </NoteBox>
+            </CardBody>
+          </Card>
+
+          {/* 2) Хто є хто + картинка */}
+          <Card $span2>
+            <CardHeader>
+              <Badge>2</Badge>
+              <CardTitle>Хто є хто в платіжці</CardTitle>
+            </CardHeader>
+
+            <CardBody>
+              <Split>
+                <SplitLeft>
+                  <Paragraph>
+                    У платіжці зазвичай фігурують різні “учасники”. Якщо
+                    розумієш їхні ролі — простіше перевірити рахунок і не
+                    помилитися під час оплати.
+                  </Paragraph>
+
+                  <MiniTitle>Постачальник електроенергії</MiniTitle>
+                  <Paragraph>
+                    Це компанія, яка <b>продає</b> електроенергію та{" "}
+                    <b>виставляє рахунок</b>. Саме їй здійснюється оплата.
+                  </Paragraph>
+
+                  <NoteBox>
+                    <NoteTitle>Приклад з цієї платіжки:</NoteTitle>
+                    <NoteList>
+                      <li>
+                        Отримувач: <b>ТОВ “КИЇВСЬКІ ЕНЕРГЕТИЧНІ ПОСЛУГИ”</b>
+                      </li>
+                      <li>
+                        ЄДРПОУ: <b>41916045</b>
+                      </li>
+                      <li>Рахунок (IBAN): вказаний у верхній частині</li>
+                      <li>
+                        Бренд на платіжці: <b>YASNO</b> (логотип біля QR)
+                      </li>
+                    </NoteList>
+                  </NoteBox>
+
+                  <Divider />
+
+                  <MiniTitle>Клієнт (споживач)</MiniTitle>
+                  <Paragraph>
+                    Це власник особового рахунку (той, на кого сформовано
+                    платіжку). <b>Особовий рахунок</b> — головний ідентифікатор
+                    при оплаті.
+                  </Paragraph>
+
+                  <NoteBox>
+                    <NoteTitle>Приклад з цієї платіжки:</NoteTitle>
+                    <NoteList>
+                      <li>
+                        Клієнт: <b>Ясний Петро Іванович</b>
+                      </li>
+                      <li>
+                        Адреса:{" "}
+                        <b>
+                          м. Київ, Печерський р-н, вул. Енергетиків 5, кв.168
+                        </b>
+                      </li>
+                      <li>
+                        Особовий рахунок: <b>12345678910</b>
+                      </li>
+                    </NoteList>
+                  </NoteBox>
+
+                  <Divider />
+
+                  <MiniTitle>Оператор системи розподілу (ОСР)</MiniTitle>
+                  <Paragraph>
+                    Це компанія, яка <b>доставляє електроенергію мережами</b> до
+                    будинку та відповідає за мережі/лічильники. У Києві таким
+                    оператором зазвичай є{" "}
+                    <b>ПрАТ “ДТЕК Київські електромережі”</b>.
+                  </Paragraph>
+
+                  <Paragraph>
+                    <Muted>
+                      Важливо: постачальник “продає”, а ОСР “транспортує”. У
+                      деяких рахунках розподіл може бути окремим рядком.
+                    </Muted>
+                  </Paragraph>
+                </SplitLeft>
+
+                <SplitRight>
+                  <Figure>
+                    <FigureTop>
+                      <FigureTopTitle>Пояснення блоків 1–6</FigureTopTitle>
+                    </FigureTop>
+                    <FigureBody>
+                      <img
+                        src={billImg}
+                        alt="Платіжка з позначеними блоками 1–6"
+                      />
+                    </FigureBody>
+                  </Figure>
+                </SplitRight>
+              </Split>
+            </CardBody>
+          </Card>
+
+          {/* 3) Пояснення блоків 1–6 */}
+          <Card $span2>
+            <CardHeader>
+              <Badge>3</Badge>
+              <CardTitle>Пояснення блоків 1–6 на платіжці</CardTitle>
+            </CardHeader>
+
+            <CardBody>
+              <TwoCols>
+                <div>
+                  <MiniTitle>Блок 1 — Дані споживача</MiniTitle>
+                  <Paragraph>
+                    Містить дані отримувача, клієнта, адресу та{" "}
+                    <b>особовий рахунок</b>. Використовується для ідентифікації
+                    та коректної оплати.
+                  </Paragraph>
+
+                  <MiniTitle>Блок 2 — Показники лічильника</MiniTitle>
+                  <Paragraph>
+                    Попередні/поточні показники, на основі яких визначають
+                    споживання.
+                  </Paragraph>
+
+                  <NoteBox>
+                    <NoteTitle>Формула:</NoteTitle>
+                    <NoteList>
+                      <li>
+                        <b>Споживання = Поточні − Попередні</b>
+                      </li>
+                    </NoteList>
+                  </NoteBox>
+
+                  <MiniTitle>Блок 3 — Споживання і тариф</MiniTitle>
+                  <Paragraph>
+                    Обсяг (кВт·год) та тариф (грн/кВт·год), з яких формується
+                    базова сума.
+                  </Paragraph>
+
+                  <NoteBox>
+                    <NoteTitle>Формула:</NoteTitle>
+                    <NoteList>
+                      <li>
+                        <b>Сума = Споживання × Тариф</b>
+                      </li>
+                    </NoteList>
+                  </NoteBox>
+                </div>
+
+                <div>
+                  <MiniTitle>Блок 4 — Сума та строк оплати</MiniTitle>
+                  <Paragraph>
+                    Показує підсумок до сплати, розшифровку
+                    (борг/нарахування/оплати) та дедлайн.
+                  </Paragraph>
+
+                  <MiniTitle>Блок 5 — EIC-код</MiniTitle>
+                  <Paragraph>
+                    Унікальний ідентифікатор точки обліку (потрібен для
+                    ідентифікації об’єкта, кабінетів, зміни постачальника). Не
+                    плутати з особовим рахунком.
+                  </Paragraph>
+
+                  <MiniTitle>Блок 6 — QR-код</MiniTitle>
+                  <Paragraph>
+                    Для швидкої оплати через банківський застосунок. Перед
+                    підтвердженням варто перевірити суму і особовий рахунок.
+                  </Paragraph>
+
+                  <Bubble>
+                    Це ключові зони: знайдеш їх — прочитаєш рахунок швидко й без
+                    помилок.
+                  </Bubble>
+                </div>
+              </TwoCols>
+            </CardBody>
+          </Card>
+
+          {/* 4) кВт·год */}
+          <Card>
+            <CardHeader>
+              <Badge>4</Badge>
+              <CardTitle>Що таке кВт·год</CardTitle>
+            </CardHeader>
+
+            <CardBody>
+              <Paragraph>
+                кВт·год — одиниця вимірювання спожитої електроенергії.
+              </Paragraph>
+
+              <NoteBox>
+                <NoteTitle>Простими словами:</NoteTitle>
+                <NoteList>
                   <li>
-                    У платіжці зазвичай позначено як <b>“Тариф”</b> або <b>“Ціна”</b>.
+                    <b>1 кВт·год</b> = прилад потужністю <b>1 кВт</b> працює{" "}
+                    <b>1 годину</b>.
                   </li>
-                </ReadBillList>
-              </ReadBillMiniCardText>
-            </ReadBillMiniCard>
-
-            <ReadBillDivider />
-
-            <ReadBillMiniCard>
-              <ReadBillMiniCardTitle>Двоставковий тариф (денний/нічний)</ReadBillMiniCardTitle>
-              <ReadBillMiniCardText>
-                <ReadBillList>
-                  <li>Є два тарифи: денний і нічний.</li>
-                  <li>Потрібні окремі показники або лічильник з розподілом.</li>
                   <li>
-                    У платіжці можуть бути рядки <b>“День”</b> / <b>“Ніч”</b>.
+                    Обігрівач <b>2 кВт × 3 години = 6 кВт·год</b>.
                   </li>
-                </ReadBillList>
-              </ReadBillMiniCardText>
-            </ReadBillMiniCard>
+                </NoteList>
+              </NoteBox>
 
-            <ReadBillFootnote>
-              Коротко про тариф: <ReadBillMuted>споживання × тариф = сума</ReadBillMuted>
-            </ReadBillFootnote>
-          </ReadBillSectionCard>
+              <Paragraph>
+                <Muted>
+                  Саме кВт·год множаться на тариф, щоб отримати суму за місяць.
+                </Muted>
+              </Paragraph>
+            </CardBody>
+          </Card>
 
-          {/* 2) Пеня, борг, переплата */}
-          <ReadBillSectionCard>
-            <ReadBillSectionHeader>
-              <ReadBillSectionTitle>Пеня, борг, переплата</ReadBillSectionTitle>
-            </ReadBillSectionHeader>
+          {/* 5) Незрозумілі рядки */}
+          <Card>
+            <CardHeader>
+              <Badge>5</Badge>
+              <CardTitle>Що означають “незрозумілі рядки”</CardTitle>
+            </CardHeader>
 
-            <ReadBillMiniCard>
-              <ReadBillMiniCardTitle>Пеня</ReadBillMiniCardTitle>
-              <ReadBillMiniCardText>
-                Нараховується за прострочення платежу. У платіжці може бути окремим рядком або
-                включатися в загальну суму.
-              </ReadBillMiniCardText>
-            </ReadBillMiniCard>
+            <CardBody>
+              <BulletList>
+                <li>
+                  <b>Перерахунок</b> — сума змінена після уточнення показників
+                  або перевірки даних.
+                </li>
+                <li>
+                  <b>Компенсація</b> — може бути державною компенсацією або
+                  технічним коригуванням.
+                </li>
+                <li>
+                  <b>Коригування обсягів</b> — виправлення раніше врахованого
+                  споживання.
+                </li>
+                <li>
+                  <b>Розподіл</b> — плата за транспортування електроенергії
+                  мережею до будинку.
+                </li>
+              </BulletList>
 
-            <ReadBillMiniCard>
-              <ReadBillMiniCardTitle>Борг</ReadBillMiniCardTitle>
-              <ReadBillMiniCardText>
-                Це сума, яку не сплатили раніше. Може з’являтися після перерахунку або якщо
-                попередній рахунок не оплачено повністю.
-              </ReadBillMiniCardText>
-            </ReadBillMiniCard>
+              <Bubble>
+                Ці рядки не “зайві” — вони пояснюють, як сформувався підсумок.
+              </Bubble>
+            </CardBody>
+          </Card>
 
-            <ReadBillMiniCard>
-              <ReadBillMiniCardTitle>Переплата</ReadBillMiniCardTitle>
-              <ReadBillMiniCardText>
-                Якщо сплатили більше, ніж було нараховано — з’явиться переплата й вона піде в
-                рахунок наступних платежів.
-              </ReadBillMiniCardText>
-            </ReadBillMiniCard>
+          {/* 6) Узагальнена логіка */}
+          <Card $span2>
+            <CardHeader>
+              <Badge>6</Badge>
+              <CardTitle>Узагальнена логіка розрахунку</CardTitle>
+            </CardHeader>
 
-            <ReadBillFootnote>
-              Порада: якщо цифри “стрибають” — спочатку перевір <b>період</b> і <b>показники</b>.
-            </ReadBillFootnote>
-          </ReadBillSectionCard>
+            <CardBody>
+              <StepsList>
+                <li>Знімаються показники лічильника</li>
+                <li>Визначається обсяг споживання</li>
+                <li>Обсяг множиться на тариф</li>
+                <li>Враховуються борги / переплати / оплати</li>
+                <li>Формується підсумкова сума до сплати та дедлайн</li>
+              </StepsList>
 
-          {/* 3) Підсумкова сума */}
-          <ReadBillSectionCard>
-            <ReadBillSectionHeader>
-              <ReadBillSectionTitle>Підсумкова сума</ReadBillSectionTitle>
-            </ReadBillSectionHeader>
+              <Paragraph>
+                <Muted>
+                  Практична порада: якщо сума здається незвичною — перевір
+                  спочатку період, потім показники, а далі борг/переплату.
+                </Muted>
+              </Paragraph>
+            </CardBody>
+          </Card>
 
-            <ReadBillTable role="table" aria-label="Розрахунок підсумкової суми">
-              <thead>
-                <ReadBillTableHead>
-                  <ReadBillTableCell as="th">Елемент</ReadBillTableCell>
-                  <ReadBillTableCell as="th" $right>
-                    Значення
-                  </ReadBillTableCell>
-                </ReadBillTableHead>
-              </thead>
+          {/* 7) Практика: симуляція */}
+          <Card $span2>
+            <CardHeader>
+              <Badge>🎮</Badge>
+              <CardTitle>Практика: “Розбери платіжку”</CardTitle>
+            </CardHeader>
 
-              <tbody>
-                <ReadBillTableRow>
-                  <ReadBillTableCell>Споживання</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
-                <ReadBillTableRow>
-                  <ReadBillTableCell>кВт·год</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
-                <ReadBillTableRow>
-                  <ReadBillTableCell>Сума за електроенергію</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
-                <ReadBillTableRow>
-                  <ReadBillTableCell>Абонплата</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
-                <ReadBillTableRow>
-                  <ReadBillTableCell>Борг / Переплата</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
-                <ReadBillTableRow>
-                  <ReadBillTableCell>Пеня (якщо є)</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
+            <CardBody>
+              <Paragraph>
+                Закріпи теорію на практиці: клікни по потрібних елементах
+                платіжки та обери правильні пояснення. Після проходження
+                отримаєш результат і бейдж.
+              </Paragraph>
 
-                <ReadBillTableRow $total>
-                  <ReadBillTableCell>Разом до сплати</ReadBillTableCell>
-                  <ReadBillTableCell $right>XX</ReadBillTableCell>
-                </ReadBillTableRow>
-              </tbody>
-            </ReadBillTable>
-
-            <ReadBillFootnote>
-              <ReadBillMuted>
-                Споживання, кВт·год = Нові показники − Старі показники (за період)
-              </ReadBillMuted>
-            </ReadBillFootnote>
-          </ReadBillSectionCard>
-
-          {/* 4) Порахуємо суму (✅ стоїть під 1-ою секцією як новий ряд) */}
-          <ReadBillSectionCard $span1>
-            <ReadBillSectionHeader>
-              <ReadBillSectionTitle>Порахуємо суму</ReadBillSectionTitle>
-            </ReadBillSectionHeader>
-
-            <ReadBillCalcBox aria-label="Калькулятор суми">
-              <ReadBillCalcTitle>Міні-калькулятор</ReadBillCalcTitle>
-
-              <ReadBillCalcRow>
-                <ReadBillInput type="number" inputMode="decimal" placeholder="Старі показники" />
-              </ReadBillCalcRow>
-              <ReadBillCalcRow>
-                <ReadBillInput type="number" inputMode="decimal" placeholder="Нові показники" />
-              </ReadBillCalcRow>
-              <ReadBillCalcRow>
-                <ReadBillInput type="number" inputMode="decimal" placeholder="Тариф (грн/кВт·год)" />
-              </ReadBillCalcRow>
-
-              <ReadBillButton type="button">Порахувати</ReadBillButton>
-
-              <ReadBillFootnote>
-                Алгоритм: <ReadBillMuted>(Нові − Старі) × Тариф</ReadBillMuted>
-              </ReadBillFootnote>
-            </ReadBillCalcBox>
-
-            <ReadBillCardText style={{ marginTop: 10 }}>
-              Якщо у тебе <b>денний/нічний</b> тариф — рахуємо окремо:
-              <ReadBillList>
-                <li>(День: Нові − Старі) × Тариф_день</li>
-                <li>(Ніч: Нові − Старі) × Тариф_ніч</li>
-                <li>Потім додаємо обидві суми.</li>
-              </ReadBillList>
-            </ReadBillCardText>
-          </ReadBillSectionCard>
-        </ReadBillMainGrid>
-      </ReadBillContainer>
-    </ReadBillPage>
+              <ReadBillSim />
+            </CardBody>
+          </Card>
+        </ContentGrid>
+      </Container>
+    </Page>
   );
 }

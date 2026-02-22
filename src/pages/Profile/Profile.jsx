@@ -33,28 +33,40 @@ import {
   UploadButton,
   Divider,
   SectionTitle,
-  FormColumn
+  FormColumn,
 } from './Profile.styled';
 
-export default function Profile() {
-  const [activeTab, setActiveTab] = useState('main');
+import { useAuth } from "../../context/AuthContext.jsx";
+import { resolveAvatarSrc } from "../../utils/avatar";
 
-  // 1. ПОЧАТКОВІ ДАНІ (Стан)
-  // Всі дані зберігаються тут, усередині компонента
-  const [user, setUser] = useState({
-    name: "Name",
-    email: "user@example.com",
-    avatar: null,
+export default function Profile() {
+  const [activeTab, setActiveTab] = useState("main");
+  const { user, updateProfile, uploadAvatar } = useAuth();
+
+
+  // Це поки локальні мета-дані (ти можеш потім підтягнути з бекенду)
+  const [meta, setMeta] = useState({
     level: "Новачок",
     progress: 25,
-    currentGoal: "Фінансова грамотність"
+    currentGoal: "Фінансова грамотність",
   });
 
-  // Тимчасовий стан для форми редагування
-  const [editFormData, setEditFormData] = useState(user);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
-  // Список досягнень (статичний, бо редагувати досягнення ми не будемо)
-  const achievementsData = [
+  useEffect(() => {
+    setEditFormData((prev) => ({
+      ...prev,
+      name: user?.name || "",
+    }));
+  }, [user]);
+
+  const achievementsData = useMemo(
+    () => [
     { title: "Майстер Побуту", desc: "Пройти всі симуляції", done: false },
     { title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: true },
     { title: "Захисник Комфорту", desc: "Пройти 5 симуляцій середнього рівня", done: false },
@@ -65,38 +77,75 @@ export default function Profile() {
     { title: "Домашній Супергерой", desc: "Успішно пройти всі модулі курсу", done: false },
     { title: "Універсальний Учень", desc: "Пройти хоча б одну симуляцію", done: false },
     { title: "Пішло поїхало", desc: "Зробити перший клік у симуляції", done: false },
-  ];
+    ],
+    []
+  );
 
   const achievementsReceived = achievementsData.filter(a => a.done).length;
   const achievementsPercent = (achievementsReceived / achievementsData.length) * 100;
 
-  // --- ФУНКЦІЇ ДЛЯ ІНТЕРАКТИВУ ---
+  const avatarSrc = resolveAvatarSrc(user?.avatarUrl);
 
   const goBack = () => setActiveTab('main');
 
-  // Обробка зміни фото (Тільки візуально в браузері)
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setEditFormData({ ...editFormData, avatar: imageUrl });
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadAvatar(file);
+    } catch (err) {
+      alert(err?.message || "Не вдалося завантажити фото");
+    } finally {
+      e.target.value = "";
     }
   };
 
-  // Збереження форми редагування
-  const handleSaveProfile = () => {
-    // Переносимо дані з форми в основний об'єкт користувача
-    setUser({
-      ...user,
-      name: editFormData.name,
-      avatar: editFormData.avatar
-    });
-    goBack();
-  };
+  const handleSaveProfile = async () => {
+    try {
+      const payload = {};
+
+      const nameTrim = (editFormData.name || "").trim();
+      if (nameTrim && nameTrim !== (user?.name || "")) payload.name = nameTrim;
+
+      if (editFormData.newPassword || editFormData.confirmPassword || editFormData.oldPassword) {
+        if (!editFormData.oldPassword) {
+          alert("Для зміни пароля введіть поточний пароль.");
+          return;
+        }
+        if (!editFormData.newPassword) {
+          alert("Введіть новий пароль.");
+          return;
+        }
+        if (editFormData.newPassword !== editFormData.confirmPassword) {
+          alert("Новий пароль і підтвердження не співпадають.");
+          return;
+        }
+
+        payload.oldPassword = editFormData.oldPassword;
+        payload.newPassword = editFormData.newPassword;
+      }
+
+      if (Object.keys(payload).length > 0) {
+        await updateProfile(payload);
+      }
+
+      setEditFormData((prev) => ({
+        ...prev,
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+
+      goBack();
+    } catch (err) {
+      alert(err?.message || "Не вдалося зберегти зміни");
+    }
+  }; 
 
   // Зміна мети
   const handleChangeGoal = (newGoal) => {
-    setUser({ ...user, currentGoal: newGoal });
+    setMeta((prev) => ({ ...prev, currentGoal: newGoal }));
     goBack();
   };
 
@@ -111,33 +160,39 @@ export default function Profile() {
           <UserHeaderCard>
             <UserInfo>
               <AvatarPlaceholder>
-                {user.avatar ? <img src={user.avatar} alt="Avatar" /> : <FiUser />}
+                {avatarSrc ? <img src={avatarSrc} alt="Avatar" /> : <FiUser />}
               </AvatarPlaceholder>
               <UserDetails>
                 <UserNameRow>
-                  {/* Дані беруться зі State */}
-                  <UserName>{user.name}</UserName>
+                  <UserName>{user?.name || "User"}</UserName>
                   <EditButton 
                     aria-label="Редагувати" 
                     onClick={() => {
-                      setEditFormData(user); // Заповнюємо форму поточними даними
-                      setActiveTab('edit');
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        name: user?.name || "",
+                        oldPassword: "",
+                        newPassword: "",
+                        confirmPassword: "",
+                      }));
+                      setActiveTab("edit");
                     }}
                   >
                     <FiEdit2 size={18} />
                   </EditButton>
                 </UserNameRow>
-                <UserLevel>Рівень: {user.level}</UserLevel>
+
+                <UserLevel>Рівень: {meta.level}</UserLevel>
               </UserDetails>
             </UserInfo>
 
             <ProgressSection>
               <ProgressLabel>
                 <span>Загальний прогрес:</span>
-                <span>{user.progress}%</span>
+                <span>{meta.progress}%</span>
               </ProgressLabel>
               <ProgressBarContainer>
-                <ProgressBarFill $percent={user.progress} />
+                <ProgressBarFill $percent={meta.progress} />
               </ProgressBarContainer>
             </ProgressSection>
           </UserHeaderCard>
@@ -176,8 +231,7 @@ export default function Profile() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                 <div style={{ flex: '1 1 300px' }}>
                   <CardHeader>
-                    {/* Мета динамічна */}
-                    <CardTitle>Поточна мета: «{user.currentGoal}»</CardTitle>
+                    <CardTitle>Поточна мета: «{meta.currentGoal}»</CardTitle>
                     <FiTarget size={24} />
                   </CardHeader>
                   <List>
@@ -279,7 +333,7 @@ export default function Profile() {
               
               <AvatarUploadWrapper>
                 <AvatarPlaceholder>
-                  {editFormData.avatar ? <img src={editFormData.avatar} alt="New Avatar" /> : <FiUser />}
+                  {avatarSrc ? <img src={avatarSrc} alt="Avatar" /> : <FiUser />}
                 </AvatarPlaceholder>
                 <UploadButton>
                   <FiCamera style={{ marginRight: '6px' }} />
@@ -303,15 +357,20 @@ export default function Profile() {
               <Divider />
 
               <SectionTitle>Зміна пароля</SectionTitle>
-              
+
+              <InputGroup>
+                <label>Поточний пароль</label>
+                <input type="password" placeholder="Введіть поточний пароль" value={editFormData.oldPassword} onChange={(e) => setEditFormData((p) => ({ ...p, oldPassword: e.target.value }))}/>
+              </InputGroup>
+
               <InputGroup>
                 <label>Новий пароль</label>
-                <input type="password" placeholder="Введіть новий пароль" />
+                <input type="password" placeholder="Введіть новий пароль" value={editFormData.newPassword} onChange={(e) => setEditFormData((p) => ({ ...p, newPassword: e.target.value }))}/>
               </InputGroup>
 
               <InputGroup>
                 <label>Підтвердити пароль</label>
-                <input type="password" placeholder="Повторіть пароль" />
+                <input type="password" placeholder="Повторіть пароль" value={editFormData.confirmPassword} onChange={(e) => setEditFormData((p) => ({ ...p, confirmPassword: e.target.value }))}/>
               </InputGroup>
 
               {/* Кнопка зберігає зміни і оновлює головний екран */}
