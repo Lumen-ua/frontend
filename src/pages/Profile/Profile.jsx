@@ -1,59 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUser, FiMenu, FiEdit2, FiTarget, FiArrowLeft, FiAward, FiCheck, FiArrowRight, FiCamera } from 'react-icons/fi';
 
 import {
-  ProfileWrapper,
-  ProfileTitle,
-  UserHeaderCard,
-  UserInfo,
-  AvatarPlaceholder,
-  UserDetails,
-  UserNameRow,
-  UserName,
-  EditButton,
-  UserLevel,
-  ProgressSection,
-  ProgressLabel,
-  ProgressBarContainer,
-  ProgressBarFill,
-  ProfileGrid,
-  ContentCard,
-  CardHeader,
-  CardTitle,
-  List,
-  ListItem,
-  ActionButton,
-  BackButton,
-  GoalButton,
-  InputGroup,
-  AchievementRow,
-  CheckIcon,
-  AvatarUploadWrapper,
-  HiddenFileInput,
-  UploadButton,
-  Divider,
-  SectionTitle,
-  FormColumn
+  ProfileWrapper, ProfileTitle, UserHeaderCard, UserInfo, AvatarPlaceholder, UserDetails,
+  UserNameRow, UserName, EditButton, UserLevel, ProgressSection, ProgressLabel,
+  ProgressBarContainer, ProgressBarFill, ProfileGrid, ContentCard, CardHeader, CardTitle,
+  List, ListItem, ActionButton, BackButton, GoalButton, InputGroup, AchievementRow,
+  CheckIcon, AvatarUploadWrapper, HiddenFileInput, UploadButton, Divider, SectionTitle, FormColumn
 } from './Profile.styled';
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState('main');
 
-  // 1. ПОЧАТКОВІ ДАНІ (Стан)
-  // Всі дані зберігаються тут, усередині компонента
   const [user, setUser] = useState({
-    name: "Name",
-    email: "user@example.com",
+    name: "Завантаження...",
+    email: "",
     avatar: null,
     level: "Новачок",
     progress: 25,
     currentGoal: "Фінансова грамотність"
   });
 
-  // Тимчасовий стан для форми редагування
   const [editFormData, setEditFormData] = useState(user);
 
-  // Список досягнень (статичний, бо редагувати досягнення ми не будемо)
+  // Завантаження даних з бази
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.warn("Немає токена. Користувач не авторизований.");
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:5000/api/Users/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUser(prev => ({
+            ...prev,
+            name: data.name || "Без імені",
+            email: data.email || ""
+          }));
+        }
+      } catch (error) {
+        console.error("Помилка завантаження профілю:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Словник: Мета -> Список рекомендацій
+  const goalRecommendations = {
+    "Фінансова грамотність": [
+      "Склади персональний бюджет",
+      "Створи регулярну оплату рахунків",
+      "Створи фінансову подушку безпеки"
+    ],
+    "Енергоефективність": [
+      "Заміни лампочки на енергоощадні (LED)",
+      "Вимикай прилади з розеток на ніч",
+      "Встанови терморегулятори на батареї"
+    ],
+    "Без боргів": [
+      "Склади список усіх заборгованостей",
+      "Налаштуй автоплатежі для кредитів",
+      "Відмовся від непотрібних підписок"
+    ]
+  };
+
   const achievementsData = [
     { title: "Майстер Побуту", desc: "Пройти всі симуляції", done: false },
     { title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: true },
@@ -70,11 +92,8 @@ export default function Profile() {
   const achievementsReceived = achievementsData.filter(a => a.done).length;
   const achievementsPercent = (achievementsReceived / achievementsData.length) * 100;
 
-  // --- ФУНКЦІЇ ДЛЯ ІНТЕРАКТИВУ ---
-
   const goBack = () => setActiveTab('main');
 
-  // Обробка зміни фото (Тільки візуально в браузері)
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -83,31 +102,53 @@ export default function Profile() {
     }
   };
 
-  // Збереження форми редагування
-  const handleSaveProfile = () => {
-    // Переносимо дані з форми в основний об'єкт користувача
-    setUser({
-      ...user,
-      name: editFormData.name,
-      avatar: editFormData.avatar
-    });
-    goBack();
+  const handleSaveProfile = async () => {
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/Users/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          name: editFormData.name
+        })
+      });
+
+      if (response.ok) {
+        setUser({
+          ...user,
+          name: editFormData.name,
+          avatar: editFormData.avatar
+        });
+        alert("Дані успішно збережено!");
+        goBack();
+      } else {
+        alert("Не вдалося зберегти зміни на сервері.");
+      }
+    } catch (error) {
+      console.error("Помилка збереження:", error);
+      alert("Немає зв'язку з сервером.");
+    }
   };
 
-  // Зміна мети
   const handleChangeGoal = (newGoal) => {
     setUser({ ...user, currentGoal: newGoal });
     goBack();
   };
 
+  useEffect(() => {
+    setEditFormData(user);
+  }, [user]);
+
   return (
     <ProfileWrapper>
       
-      {/* --- ГОЛОВНА СТОРІНКА --- */}
       {activeTab === 'main' && (
         <>
           <ProfileTitle>Профіль</ProfileTitle>
-
           <UserHeaderCard>
             <UserInfo>
               <AvatarPlaceholder>
@@ -115,12 +156,11 @@ export default function Profile() {
               </AvatarPlaceholder>
               <UserDetails>
                 <UserNameRow>
-                  {/* Дані беруться зі State */}
                   <UserName>{user.name}</UserName>
                   <EditButton 
                     aria-label="Редагувати" 
                     onClick={() => {
-                      setEditFormData(user); // Заповнюємо форму поточними даними
+                      setEditFormData(user);
                       setActiveTab('edit');
                     }}
                   >
@@ -143,7 +183,6 @@ export default function Profile() {
           </UserHeaderCard>
 
           <ProfileGrid>
-            {/* Секція Досягнень */}
             <ContentCard>
               <CardHeader>
                 <CardTitle>Досягнення</CardTitle>
@@ -165,25 +204,25 @@ export default function Profile() {
             <ContentCard>
               <CardTitle style={{ marginBottom: '16px' }}>Персональні рекомендації</CardTitle>
               <List>
-                <ListItem>Склади персональний бюджет</ListItem>
-                <ListItem>Створи регулярну оплату рахунків</ListItem>
-                <ListItem>Подумати про енергоощадність</ListItem>
+                {/* Динамічний вивід рекомендацій з нашого словника */}
+                {goalRecommendations[user.currentGoal]?.map((rec, index) => (
+                  <ListItem key={index}>{rec}</ListItem>
+                ))}
               </List>
             </ContentCard>
 
-            {/* Секція Мети */}
             <ContentCard style={{ gridColumn: '1 / -1' }}> 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                 <div style={{ flex: '1 1 300px' }}>
                   <CardHeader>
-                    {/* Мета динамічна */}
                     <CardTitle>Поточна мета: «{user.currentGoal}»</CardTitle>
                     <FiTarget size={24} />
                   </CardHeader>
                   <List>
-                    <ListItem>Склади персональний бюджет</ListItem>
-                    <ListItem>Створи регулярну оплату рахунків</ListItem>
-                    <ListItem>Подумати про енергоощадність</ListItem>
+                    {/* Динамічний вивід рекомендацій для мети */}
+                    {goalRecommendations[user.currentGoal]?.map((rec, index) => (
+                      <ListItem key={index}>{rec}</ListItem>
+                    ))}
                   </List>
                 </div>
 
@@ -201,7 +240,6 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВКЛАДКА: ВСІ ДОСЯГНЕННЯ --- */}
       {activeTab === 'achievements' && (
         <>
           <BackButton onClick={goBack}>
@@ -228,7 +266,6 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВКЛАДКА: ЗМІНА МЕТИ --- */}
       {activeTab === 'goals' && (
         <>
           <BackButton onClick={goBack}>
@@ -265,7 +302,6 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВКЛАДКА: РЕДАГУВАННЯ --- */}
       {activeTab === 'edit' && (
         <>
           <BackButton onClick={goBack}>
@@ -290,15 +326,12 @@ export default function Profile() {
 
               <InputGroup>
                 <label>Ваше ім'я</label>
-                {/* Двостороннє зв'язування: value + onChange */}
                 <input 
                   type="text" 
                   value={editFormData.name} 
                   onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} 
                 />
               </InputGroup>
-
-              {/* Пошта відсутня за вашим проханням */}
 
               <Divider />
 
@@ -314,7 +347,6 @@ export default function Profile() {
                 <input type="password" placeholder="Повторіть пароль" />
               </InputGroup>
 
-              {/* Кнопка зберігає зміни і оновлює головний екран */}
               <ActionButton onClick={handleSaveProfile} style={{ marginTop: '16px' }}>
                 Зберегти зміни
               </ActionButton>
@@ -326,4 +358,4 @@ export default function Profile() {
 
     </ProfileWrapper>
   );
-};
+}
