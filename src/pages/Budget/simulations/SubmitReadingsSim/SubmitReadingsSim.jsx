@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Wrap,
   Header,
@@ -23,15 +23,14 @@ import {
   Divider,
   SummaryGrid,
   SummaryItem,
-  BigNumber,
   SuccessBox,
   SuccessTitle,
   SuccessText,
   Confetti,
 } from "./SubmitReadingsSim.styled";
 
-const OLD_READING = 12540;
-const DEFAULT_NEW = 12620;
+import { useAuth } from "../../../../context/AuthContext.jsx";
+import { budgetContentApi } from "../../../../api/budgetContent";
 
 const TARIF_OPTIONS = [
   { id: "t1", label: "2.64 грн/кВт·год (стандарт)", value: 2.64 },
@@ -40,34 +39,42 @@ const TARIF_OPTIONS = [
 ];
 
 function toNumberSafe(v) {
-  if (v === "" || v === null || v === undefined) return NaN;
-  const n = Number(String(v).replace(",", "."));
+  const s = (v ?? "").toString().replace(",", ".").trim();
+  if (s === "") return NaN;
+  const n = Number(s);
   return Number.isFinite(n) ? n : NaN;
 }
 
 function round2(n) {
-  return Math.round(n * 100) / 100;
+  return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
 export default function SubmitReadingsSim() {
-  // steps: 1) new reading + consumption, 2) choose tariff, 3) calculate sum, 4) success
+  const { token } = useAuth();
+  const [achievementSent, setAchievementSent] = useState(false);
+
   const [step, setStep] = useState(1);
 
-  const [newReading, setNewReading] = useState(String(DEFAULT_NEW));
-  const [consumption, setConsumption] = useState(""); // user input
+  // ✅ Тепер користувач вводить і старі, і нові
+  const [oldReading, setOldReading] = useState("");
+  const [newReading, setNewReading] = useState("");
+  const [consumption, setConsumption] = useState("");
 
   const [tariffChoice, setTariffChoice] = useState("t1");
   const [customTariff, setCustomTariff] = useState("");
 
+  // ✅ Користувач сам рахує суму
   const [sumInput, setSumInput] = useState("");
 
   const [hint, setHint] = useState({ type: "none", title: "", text: "" });
 
-  const expectedConsumption = useMemo(() => {
-    const nNew = toNumberSafe(newReading);
-    if (!Number.isFinite(nNew)) return NaN;
-    return nNew - OLD_READING;
-  }, [newReading]);
+  const parsedOld = useMemo(() => toNumberSafe(oldReading), [oldReading]);
+  const parsedNew = useMemo(() => toNumberSafe(newReading), [newReading]);
+
+  const correctConsumption = useMemo(() => {
+    if (!Number.isFinite(parsedOld) || !Number.isFinite(parsedNew)) return NaN;
+    return parsedNew - parsedOld;
+  }, [parsedOld, parsedNew]);
 
   const tariffValue = useMemo(() => {
     const found = TARIF_OPTIONS.find((t) => t.id === tariffChoice);
@@ -76,66 +83,63 @@ export default function SubmitReadingsSim() {
     return found.value;
   }, [tariffChoice, customTariff]);
 
-  const expectedSum = useMemo(() => {
-    if (!Number.isFinite(expectedConsumption) || !Number.isFinite(tariffValue)) return NaN;
-    if (expectedConsumption < 0) return NaN;
-    return round2(expectedConsumption * tariffValue);
-  }, [expectedConsumption, tariffValue]);
+  const correctSum = useMemo(() => {
+    if (!Number.isFinite(correctConsumption) || !Number.isFinite(tariffValue)) return NaN;
+    if (correctConsumption < 0) return NaN;
+    return round2(correctConsumption * tariffValue);
+  }, [correctConsumption, tariffValue]);
 
-  const setOk = (text, title = "Вірно") =>
-    setHint({ type: "ok", title, text });
-
-  const setBad = (text, title = "Помилка") =>
-    setHint({ type: "bad", title, text });
-
+  const setOk = (text, title = "Вірно") => setHint({ type: "ok", title, text });
+  const setBad = (text, title = "Помилка") => setHint({ type: "bad", title, text });
   const resetHint = () => setHint({ type: "none", title: "", text: "" });
 
-  // ---- validations ----
   const validateStep1 = () => {
     resetHint();
 
+    const nOld = toNumberSafe(oldReading);
     const nNew = toNumberSafe(newReading);
     const nCons = toNumberSafe(consumption);
 
-    if (!Number.isFinite(nNew)) {
-      setBad("Введи нові показники числом (без літер). Напр.: 12620.");
+    if (!Number.isFinite(nOld)) {
+      setBad("Введи старі показники числом. Напр.: 12540.");
       return false;
     }
-    if (nNew < OLD_READING) {
-      setBad(
-        `Нові показники не можуть бути менші за старі. Старі: ${OLD_READING}.`
-      );
+    if (!Number.isFinite(nNew)) {
+      setBad("Введи нові показники числом. Напр.: 12620.");
+      return false;
+    }
+    if (nNew < nOld) {
+      setBad("Нові показники не можуть бути менші за старі. Перевір, чи не переплутав(ла) місцями.");
       return false;
     }
     if (!Number.isFinite(nCons)) {
       setBad("Введи споживання числом. Воно має бути різницею між показниками.");
       return false;
     }
-    if (nCons !== expectedConsumption) {
-      setBad(
-        `Споживання пораховано неправильно. Правило: Поточні − Попередні. Тут: ${nNew} − ${OLD_READING} = ${expectedConsumption}.`
-      );
+
+    const expected = nNew - nOld;
+    if (nCons !== expected) {
+      setBad(`Споживання пораховано неправильно. Правило: Поточні − Попередні. Тут: ${nNew} − ${nOld} = ${expected}.`);
       return false;
     }
 
-    setOk(`Так! Споживання = ${expectedConsumption} кВт·год. Переходимо до тарифу.`);
+    setOk("Так! Логіка правильна. Переходимо до тарифу.");
     return true;
   };
 
   const validateStep2 = () => {
     resetHint();
 
-    if (!Number.isFinite(expectedConsumption) || expectedConsumption < 0) {
+    if (!Number.isFinite(correctConsumption) || correctConsumption < 0) {
       setBad("Спочатку правильно порахуй споживання (крок 1).");
       return false;
     }
-
     if (!Number.isFinite(tariffValue) || tariffValue <= 0) {
       setBad("Обери тариф або введи свій (позитивне число).");
       return false;
     }
 
-    setOk(`Ок! Тариф = ${tariffValue} грн/кВт·год. Тепер порахуємо суму.`);
+    setOk("Ок! Тепер порахуй суму за формулою.");
     return true;
   };
 
@@ -143,20 +147,19 @@ export default function SubmitReadingsSim() {
     resetHint();
 
     const nSum = toNumberSafe(sumInput);
-
-    if (!Number.isFinite(expectedSum)) {
-      setBad("Неможливо порахувати суму: перевір споживання та тариф.");
+    if (!Number.isFinite(correctSum)) {
+      setBad("Неможливо перевірити суму: перевір показники/споживання/тариф.");
       return false;
     }
-
     if (!Number.isFinite(nSum)) {
       setBad("Введи суму числом. Напр.: 211.20");
       return false;
     }
 
-    if (round2(nSum) !== expectedSum) {
+    if (round2(nSum) !== correctSum) {
       setBad(
-        `Сума не збігається. Формула: Споживання × Тариф. Тут: ${expectedConsumption} × ${tariffValue} = ${expectedSum} грн.`
+        `Сума не збігається. Формула: Споживання × Тариф. Перевір множення та округлення до 2 знаків.`,
+        "Не зійшлося"
       );
       return false;
     }
@@ -165,7 +168,6 @@ export default function SubmitReadingsSim() {
     return true;
   };
 
-  // ---- actions ----
   const onNext = () => {
     if (step === 1) {
       if (validateStep1()) setStep(2);
@@ -188,20 +190,37 @@ export default function SubmitReadingsSim() {
 
   const onReset = () => {
     setStep(1);
-    setNewReading(String(DEFAULT_NEW));
+    setOldReading("");
+    setNewReading("");
     setConsumption("");
     setTariffChoice("t1");
     setCustomTariff("");
     setSumInput("");
     resetHint();
+    setAchievementSent(false);
   };
 
   const stepLabel = (n) => {
-    if (n === 1) return "Порахуй споживання";
+    if (n === 1) return "Введи показники і споживання";
     if (n === 2) return "Обери тариф";
     if (n === 3) return "Порахуй суму";
     return "Готово";
   };
+
+  // ✅ Досягнення (залишив як було — якщо хочеш окремий ключ, скажеш)
+  useEffect(() => {
+    const send = async () => {
+      if (!token) return;
+      if (step !== 4) return;
+      if (achievementSent) return;
+
+      try {
+        await budgetContentApi.complete(token, "budget_calculate_indicators");
+        setAchievementSent(true);
+      } catch (_) {}
+    };
+    send();
+  }, [token, step, achievementSent]);
 
   return (
     <Wrap>
@@ -209,8 +228,7 @@ export default function SubmitReadingsSim() {
         <div>
           <HeaderTitle>Симуляція: “Передай показники правильно”</HeaderTitle>
           <HeaderSub>
-            Сценарій: старі показники <b>{OLD_READING}</b>. Ти вводиш нові, рахуєш
-            споживання, обираєш тариф і перевіряєш суму.
+            Тренування без підказок: введи <b>старі</b> і <b>нові</b> показники, порахуй споживання, обери тариф і порахуй суму.
           </HeaderSub>
         </div>
 
@@ -229,12 +247,17 @@ export default function SubmitReadingsSim() {
             {step}. {stepLabel(step)}
           </CardTitle>
 
-          {/* STEP 1 */}
           {step === 1 ? (
             <>
               <Row>
                 <Label>Старі показники</Label>
-                <ValuePill>{OLD_READING}</ValuePill>
+                <Input
+                  value={oldReading}
+                  onChange={(e) => setOldReading(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="Напр.: 12540"
+                />
+                <ValuePill>кВт·год</ValuePill>
               </Row>
 
               <Row>
@@ -264,35 +287,22 @@ export default function SubmitReadingsSim() {
               <SummaryGrid>
                 <SummaryItem>
                   <div className="k">Підказка формули</div>
-                  <div className="v">Поточні − Попередні</div>
+                  <div className="v">Споживання = Нові − Старі</div>
                 </SummaryItem>
                 <SummaryItem>
-                  <div className="k">Очікуване споживання</div>
-                  <div className="v">
-                    {Number.isFinite(expectedConsumption) ? expectedConsumption : "—"}
-                  </div>
+                  <div className="k">Перевірка</div>
+                  <div className="v">Нові ≥ Старі</div>
                 </SummaryItem>
               </SummaryGrid>
             </>
           ) : null}
 
-          {/* STEP 2 */}
           {step === 2 ? (
             <>
               <SummaryGrid>
                 <SummaryItem>
-                  <div className="k">Старі</div>
-                  <div className="v">{OLD_READING}</div>
-                </SummaryItem>
-                <SummaryItem>
-                  <div className="k">Нові</div>
-                  <div className="v">{newReading || "—"}</div>
-                </SummaryItem>
-                <SummaryItem>
-                  <div className="k">Споживання</div>
-                  <div className="v">
-                    {Number.isFinite(expectedConsumption) ? `${expectedConsumption} кВт·год` : "—"}
-                  </div>
+                  <div className="k">Формула суми</div>
+                  <div className="v">Сума = Споживання × Тариф</div>
                 </SummaryItem>
               </SummaryGrid>
 
@@ -320,42 +330,24 @@ export default function SubmitReadingsSim() {
                   />
                   <ValuePill>грн/кВт·год</ValuePill>
                 </Row>
-              ) : (
-                <Row>
-                  <Label>Обраний тариф</Label>
-                  <ValuePill>
-                    {Number.isFinite(tariffValue) ? `${tariffValue} грн/кВт·год` : "—"}
-                  </ValuePill>
-                </Row>
-              )}
+              ) : null}
 
               <Hint $type="info">
                 <HintIcon>ℹ️</HintIcon>
                 <div>
-                  <HintTitle>Для чого тариф?</HintTitle>
-                  <HintText>
-                    Тариф — це ціна 1 кВт·год. На наступному кроці ми помножимо споживання на тариф.
-                  </HintText>
+                  <HintTitle>Тариф</HintTitle>
+                  <HintText>Це ціна 1 кВт·год. На наступному кроці помножиш споживання на тариф.</HintText>
                 </div>
               </Hint>
             </>
           ) : null}
 
-          {/* STEP 3 */}
           {step === 3 ? (
             <>
               <SummaryGrid>
                 <SummaryItem>
-                  <div className="k">Споживання</div>
-                  <div className="v">{Number.isFinite(expectedConsumption) ? `${expectedConsumption} кВт·год` : "—"}</div>
-                </SummaryItem>
-                <SummaryItem>
-                  <div className="k">Тариф</div>
-                  <div className="v">{Number.isFinite(tariffValue) ? `${tariffValue} грн/кВт·год` : "—"}</div>
-                </SummaryItem>
-                <SummaryItem>
-                  <div className="k">Очікувана сума</div>
-                  <div className="v">{Number.isFinite(expectedSum) ? `${expectedSum} грн` : "—"}</div>
+                  <div className="k">Нагадування</div>
+                  <div className="v">Округлення до 2 знаків</div>
                 </SummaryItem>
               </SummaryGrid>
 
@@ -375,19 +367,18 @@ export default function SubmitReadingsSim() {
               <Hint $type="info">
                 <HintIcon>🧮</HintIcon>
                 <div>
-                  <HintTitle>Формула суми</HintTitle>
+                  <HintTitle>Формула</HintTitle>
                   <HintText>
-                    <b>Сума = Споживання × Тариф</b>. Якщо вийшло число з копійками — округлюй до 2 знаків.
+                    <b>Сума = Споживання × Тариф</b>. Результат округлюй до 2 знаків.
                   </HintText>
                 </div>
               </Hint>
             </>
           ) : null}
 
-          {/* FEEDBACK */}
           {hint.type !== "none" ? (
             <Hint $type={hint.type}>
-              <HintIcon>{hint.type === "ok" ? "✅" : "❗"}</HintIcon>
+              <HintIcon>{hint.type === "ok" ? "✅" : "❗️"}</HintIcon>
               <div>
                 <HintTitle>{hint.title}</HintTitle>
                 <HintText>{hint.text}</HintText>
@@ -395,7 +386,6 @@ export default function SubmitReadingsSim() {
             </Hint>
           ) : null}
 
-          {/* ACTIONS */}
           <Row style={{ marginTop: 14 }}>
             <BtnSecondary onClick={onBack} disabled={step === 1}>
               Назад
@@ -415,52 +405,16 @@ export default function SubmitReadingsSim() {
           <Confetti aria-hidden="true">🎉</Confetti>
           <SuccessTitle>Вітаю! Ти передав(ла) показники правильно!</SuccessTitle>
           <SuccessText>
-            Нові показники: <b>{newReading}</b> • Споживання:{" "}
-            <b>{Number.isFinite(expectedConsumption) ? expectedConsumption : "—"}</b> кВт·год • Сума:{" "}
-            <b>{Number.isFinite(expectedSum) ? expectedSum : "—"}</b> грн
+            Логіка зійшлася: <b>споживання</b> = <b>нові</b> − <b>старі</b>, а сума = <b>споживання × тариф</b>.
           </SuccessText>
 
           <Divider />
-
-          <Row>
-            <SummaryItem style={{ width: "100%" }}>
-              <div className="k">Пам’ятка</div>
-              <div className="v">
-                1) Поточні − Попередні → 2) × Тариф → 3) перевір округлення і одиниці виміру
-              </div>
-            </SummaryItem>
-          </Row>
 
           <Row style={{ marginTop: 12 }}>
             <Btn onClick={onReset}>Пройти ще раз</Btn>
           </Row>
         </SuccessBox>
       )}
-
-      <Card style={{ marginTop: 12 }}>
-        <CardTitle>Що перевіряє симуляція</CardTitle>
-        <SummaryGrid>
-          <SummaryItem>
-            <div className="k">Логіка показників</div>
-            <div className="v">Нові ≥ Старі, споживання = різниця</div>
-          </SummaryItem>
-          <SummaryItem>
-            <div className="k">Тариф</div>
-            <div className="v">Обраний або введений вручну</div>
-          </SummaryItem>
-          <SummaryItem>
-            <div className="k">Сума</div>
-            <div className="v">Споживання × тариф (округлення до 2 знаків)</div>
-          </SummaryItem>
-        </SummaryGrid>
-
-        <Divider />
-
-        <BigNumber>
-          Очікуване споживання за сценарієм:{" "}
-          <b>{DEFAULT_NEW - OLD_READING}</b> кВт·год
-        </BigNumber>
-      </Card>
     </Wrap>
   );
 }

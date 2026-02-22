@@ -262,36 +262,51 @@ export const Pie = styled.div`
   height: 200px;
   border-radius: 999px;
   border: 1px solid rgba(0,0,0,0.10);
+
+  /* ✅ як на скріні:
+     50% — справа (сірий півкруг),
+     30% — знизу-ліворуч (помаранчевий),
+     20% — зверху-ліворуч (світлий)
+  */
   background: conic-gradient(
     rgba(0,0,0,0.22) 0 50%,
     rgba(255,179,64,0.75) 50% 80%,
-    rgba(255,179,64,0.35) 80% 100%
+    rgba(255,179,64,0.28) 80% 100%
   );
+
   display: grid;
   place-items: center;
   position: relative;
   overflow: hidden;
 
+  span {
+    position: absolute;
+    font-weight: 900;
+    color: rgba(0,0,0,0.75);
+  }
+
+  /* Очікуємо:
+     <span>50%</span>
+     <span>30%</span>
+     <span>20%</span>
+  */
+
+  /* 50% — у правій (сірій) частині зверху */
   span:nth-child(1) {
-    position: absolute;
-    left: 24px;
-    top: 86px;
-    font-weight: 900;
-    color: rgba(0,0,0,0.75);
+    right: 44px;
+    top: 80px;
   }
+
+  /* 30% — зліва (помаранчевий сектор) */
   span:nth-child(2) {
-    position: absolute;
-    right: 32px;
-    top: 34px;
-    font-weight: 900;
-    color: rgba(0,0,0,0.75);
+    left: 30px;
+    top: 120px;
   }
+
+  /* 20% — у правій (сірій) частині знизу */
   span:nth-child(3) {
-    position: absolute;
-    right: 46px;
-    bottom: 30px;
-    font-weight: 900;
-    color: rgba(0,0,0,0.75);
+    right: 120px;
+    top: 28px;
   }
 `;
 

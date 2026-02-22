@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Wrap,
   Header,
@@ -40,6 +40,8 @@ import {
   MiniNote,
 } from "./BillDetectiveSim.styled";
 
+import { useAuth } from "../../../../context/AuthContext.jsx";
+import { budgetContentApi } from "../../../../api/budgetContent";
 
 const REASONS = [
   { id: "consumptionUp", text: "Збільшилось споживання" },
@@ -61,6 +63,9 @@ const fmt = (n) =>
   }).format(n);
 
 export default function BillDetectiveSim() {
+  const { token } = useAuth();
+  const [achievementSent, setAchievementSent] = useState(false);
+
   const [picked, setPicked] = useState(() => new Set());
   const [result, setResult] = useState({ type: "none", title: "", text: "" });
 
@@ -102,6 +107,7 @@ export default function BillDetectiveSim() {
   const reset = () => {
     setPicked(new Set());
     setResult({ type: "none", title: "", text: "" });
+    setAchievementSent(false);
   };
 
   const check = () => {
@@ -151,6 +157,22 @@ export default function BillDetectiveSim() {
     });
   };
 
+  // ✅ Досягнення: “чому приходять різні суми”
+  const success = result.type === "ok";
+  useEffect(() => {
+    const send = async () => {
+      if (!token) return;
+      if (!success) return;
+      if (achievementSent) return;
+
+      try {
+        await budgetContentApi.complete(token, "budget_why_different_sums");
+        setAchievementSent(true);
+      } catch (_) {}
+    };
+    send();
+  }, [token, success, achievementSent]);
+
   return (
     <Wrap>
       <Header>
@@ -164,7 +186,6 @@ export default function BillDetectiveSim() {
       </Header>
 
       <Grid>
-        {/* LEFT: Bills */}
         <Left>
           <Card>
             <CardTitle>Порівняй платіжки</CardTitle>
@@ -264,7 +285,6 @@ export default function BillDetectiveSim() {
           </Evidence>
         </Left>
 
-        {/* RIGHT: reasons */}
         <Right>
           <ReasonsCard>
             <ReasonsTitle>Обери причини стрибка суми</ReasonsTitle>

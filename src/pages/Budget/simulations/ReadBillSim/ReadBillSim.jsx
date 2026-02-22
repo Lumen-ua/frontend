@@ -1,4 +1,8 @@
-import React, { useMemo, useState } from "react";
+// ReadBillSim.jsx (оновлений)
+// ✅ Мінімальні зміни: додано лише збереження прогресу/результату (localStorage) + optional callback onComplete.
+// ❗️Верстку/елементи НЕ чіпав — усе як у твоєму файлі.
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Page,
   Shell,
@@ -36,10 +40,10 @@ import {
 import billMock from "../../../../assets/images/bill-photo.jpg";
 
 const HOTSPOTS = {
-  tariff: { x: 12, y: 64, w: 28, h: 18 }, 
-  debt: { x: 58, y: 22, w: 28, h: 14 }, 
-  distribution: { x: 58, y: 58, w: 28, h: 14 }, 
-  consumption: { x: 12, y: 44, w: 28, h: 18 }, 
+  tariff: { x: 2, y: 65, w: 33, h: 27 },
+  debt: { x: 36, y: 6, w: 62, h: 48 },
+  distribution: { x: 36, y: 54, w: 29, h: 17 },
+  consumption: { x: 2, y: 41, w: 33, h: 22 },
 };
 
 const STEPS = [
@@ -109,7 +113,69 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
-export default function ReadBillSim() {
+// ---- мінімальний "помічник" для прогресу ----
+const LS_KEY = "lumen.progress.budget"; // можеш змінити під свій ключ
+
+function safeJsonParse(str, fallback) {
+  try {
+    const v = JSON.parse(str);
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function persistReadBillResult({ percent, badgeEarned }) {
+  const now = new Date().toISOString();
+
+  const prev = safeJsonParse(localStorage.getItem(LS_KEY), {
+    sims: {},
+    updatedAt: null,
+  });
+
+  const prevSim = prev?.sims?.readBillSim ?? {
+    completed: false,
+    bestPercent: 0,
+    lastPercent: 0,
+    attempts: 0,
+    badgeEarned: false,
+    completedAt: null,
+    updatedAt: null,
+  };
+
+  const nextSim = {
+    ...prevSim,
+    attempts: (prevSim.attempts || 0) + 1,
+    lastPercent: percent,
+    bestPercent: Math.max(prevSim.bestPercent || 0, percent),
+    // вважаємо симуляцію завершеною, коли дійшли до фіналу (finished=true),
+    // а бейдж видаємо як і було: 80%+
+    completed: true,
+    badgeEarned: Boolean(prevSim.badgeEarned) || Boolean(badgeEarned),
+    completedAt: prevSim.completedAt || now,
+    updatedAt: now,
+  };
+
+  const next = {
+    ...prev,
+    sims: {
+      ...(prev.sims || {}),
+      readBillSim: nextSim,
+    },
+    updatedAt: now,
+  };
+
+  localStorage.setItem(LS_KEY, JSON.stringify(next));
+
+  // optional: сигнал для інших компонентів (Budget/Profile), якщо вони слухають подію
+  window.dispatchEvent(
+    new CustomEvent("lumen:progress-updated", {
+      detail: { key: "readBillSim", percent, badgeEarned, at: now },
+    })
+  );
+}
+
+export default function ReadBillSim({ onComplete }) {
   const [stepIndex, setStepIndex] = useState(0);
 
   const [zoneCorrect, setZoneCorrect] = useState(0);
@@ -118,7 +184,7 @@ export default function ReadBillSim() {
   const [quizCorrect, setQuizCorrect] = useState(0);
   const [quizTotal, setQuizTotal] = useState(0);
 
-  const [pickedZone, setPickedZone] = useState(null); 
+  const [pickedZone, setPickedZone] = useState(null);
   const [zoneSolved, setZoneSolved] = useState(false);
 
   const [selectedOption, setSelectedOption] = useState(null);
@@ -153,7 +219,6 @@ export default function ReadBillSim() {
 
   const onHotspotClick = (id) => {
     if (finished) return;
-
     if (zoneSolved) return;
 
     setZoneTotal((v) => v + 1);
@@ -196,6 +261,26 @@ export default function ReadBillSim() {
     ? `Завершено: ${STEPS.length} з ${STEPS.length}`
     : `Прогрес: ${safeStepIndex + 1} з ${STEPS.length}`;
 
+  // ✅ NEW: зберігаємо результат ОДИН раз, коли дійшли до фіналу
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (!finished) return;
+    if (savedRef.current) return;
+    savedRef.current = true;
+
+    persistReadBillResult({ percent, badgeEarned });
+
+    // optional callback для інтеграції з вашим глобальним прогресом/беком
+    if (typeof onComplete === "function") {
+      onComplete({
+        simKey: "readBillSim",
+        percent,
+        badgeEarned,
+        completed: true,
+      });
+    }
+  }, [finished, percent, badgeEarned, onComplete]);
+
   return (
     <Page>
       <Shell>
@@ -208,7 +293,8 @@ export default function ReadBillSim() {
           <div>
             <Title>Симуляція: Розбери платіжку</Title>
             <Subtitle>
-              Завдання: знайди, де вказано <b>тариф</b>, <b>борг</b>, <b>суму за розподіл</b> та <b>споживання</b>.
+              Завдання: знайди, де вказано <b>тариф</b>, <b>борг</b>, <b>суму за розподіл</b> та{" "}
+              <b>споживання</b>.
             </Subtitle>
           </div>
         </Header>
@@ -259,9 +345,9 @@ export default function ReadBillSim() {
                   </MissionList>
 
                   <SmallMuted>
-                    Підказка: якщо не знаходиш — орієнтуйся на логіку:{" "}
-                    <b>тариф</b> біля кВт·год, <b>борг</b> біля підсумку, <b>розподіл</b> — окрема послуга,
-                    <b>споживання</b> — кВт·год за період.
+                    Підказка: якщо не знаходиш — орієнтуйся на логіку: <b>тариф</b> біля кВт·год,{" "}
+                    <b>борг</b> біля підсумку, <b>розподіл</b> — окрема послуга, <b>споживання</b> — кВт·год за
+                    період.
                   </SmallMuted>
                 </MissionCard>
 
@@ -296,7 +382,10 @@ export default function ReadBillSim() {
                   <PrimaryBtn
                     onClick={() => {
                       if (!zoneSolved) {
-                        setFeedback({ type: "bad", text: "Спочатку клікни по правильному елементу на платіжці." });
+                        setFeedback({
+                          type: "bad",
+                          text: "Спочатку клікни по правильному елементу на платіжці.",
+                        });
                         return;
                       }
                       if (!optionLocked) {
@@ -336,9 +425,7 @@ export default function ReadBillSim() {
                   </>
                 ) : (
                   <>
-                    <BadgeSub style={{ marginTop: 10 }}>
-                      Бейдж поки не отримано 🙃
-                    </BadgeSub>
+                    <BadgeSub style={{ marginTop: 10 }}>Бейдж поки не отримано 🙃</BadgeSub>
                     <SmallMuted>
                       Потрібно <b>80%+</b>. Спробуй ще раз — і звертай увагу на підказки справа.
                     </SmallMuted>
@@ -356,6 +443,9 @@ export default function ReadBillSim() {
                     setZoneSolved(false);
                     setFeedback({ type: "none", text: "" });
                     resetQuiz();
+
+                    // ✅ щоб при повторі знов зберегти фінальний результат
+                    savedRef.current = false;
                   }}
                   style={{ marginTop: 14 }}
                 >

@@ -30,7 +30,6 @@ import {
   Tag,
 } from "./FinalSum.styled";
 
-import BuildBillSim from "../../simulations/BuildBillSim/BuildBillSim";
 
 export default function FinalSum() {
   const navigate = useNavigate();
@@ -314,15 +313,6 @@ export default function FinalSum() {
             </CardBody>
           </Card>
 
-          <Card $span2>
-            <CardHeader>
-                <Badge>🎮</Badge>
-                <CardTitle>Практика: “Збери рахунок сам”</CardTitle>
-            </CardHeader>
-            <CardBody>
-                <BuildBillSim />
-            </CardBody>
-            </Card>
         </ContentGrid>
       </Container>
     </Page>

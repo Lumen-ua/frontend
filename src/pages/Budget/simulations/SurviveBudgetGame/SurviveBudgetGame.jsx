@@ -43,7 +43,6 @@ import {
   AdviceTitle,
   AdviceList,
   ActionRow,
-  PrimaryBtn,
   SecondaryBtn,
   Divider,
 } from "./SurviveBudgetGame.styled";
@@ -263,9 +262,6 @@ export default function SurviveBudgetGame() {
             </BudgetBox>
 
             <ActionRow>
-              <PrimaryBtn type="button" onClick={() => { /* авто-перерахунок і так є */ }}>
-                Перерахувати
-              </PrimaryBtn>
               <SecondaryBtn type="button" onClick={reset}>
                 Скинути
               </SecondaryBtn>
