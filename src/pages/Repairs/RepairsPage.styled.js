@@ -164,8 +164,8 @@ export const Row = styled.div`
   gap: 16px;
   margin-bottom: 20px;
 
-  ${({ reverse }) =>
-    reverse &&
+  ${({ $reverse }) =>
+    $reverse &&
     `
     grid-template-columns: 1fr 220px;
 
@@ -1008,4 +1008,32 @@ export const GreyFrame = styled.div`
   gap: 15px; 
   align-items: stretch;
   align-self: stretch;
+`;
+
+export const ProgressBadge = styled.div`
+  background-color: #9ceaff;
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #000;
+  width: fit-content;
+  font-family: var(--font-family);
+
+  margin-left: auto;    
+  margin-right: 32px;    
+  
+  margin-top: -20px;      
+  margin-bottom: 10px;   
+  
+  @media (max-width: 768px) {
+    margin-right: 16px;
+    font-size: 12px;
+    margin-top: -16px;
+  }
+`;
+
+export const AnimatedSection = styled.div`
+  animation: ${fadeIn} 0.3s ease;
 `;

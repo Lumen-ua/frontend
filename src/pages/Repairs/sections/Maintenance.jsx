@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { APPLIANCES } from "../data/appliances";
+import { repairsApi } from "../../../api/repairsApi";
 
 import airConditionImg from "../../../assets/images/air_condition.png";
 import washingMachineImg from "../../../assets/images/washing_machine.png";
@@ -36,6 +37,7 @@ import {
     ProgressBar
 } from "../RepairsPage.styled";
 
+//статус приладу, з моменту останньої чистки
 const getStatusColor = (lastCleaned, intervalDays) => {
     if (!lastCleaned) return '#FF5252'; 
     
@@ -50,6 +52,7 @@ const getStatusColor = (lastCleaned, intervalDays) => {
     return '#69F0AE'; 
 };
 
+//таймер, показує кількість днів до наступного прибирання
 const getDaysLeftText = (lastCleaned, intervalDays) => {
     if (!lastCleaned) return 'Терміново!';
     const now = new Date();
@@ -64,22 +67,47 @@ const getDaysLeftText = (lastCleaned, intervalDays) => {
 
 
 export default function MaintenanceSection(){
+    const token = localStorage.getItem("lumen_token");
+    const [maintenanceState, setMaintenanceState] = useState({});
 
-    //керування даними про дату останнього прибирання
-    const [maintenanceState, setMaintenanceState] = useState(() => {
-        const saved = localStorage.getItem('flatTamagotchi');
-        return saved ? JSON.parse(saved) : {};
-    });
+    //завантаження з серверу
+    useEffect(() => {
+        const loadMaintenance = async () => {
+            try {
+            const data = await repairsApi.getAll(token);
 
-    //керування станом модального вікна
+            setMaintenanceState(
+                JSON.parse(data.maintenanceStateJson)
+            );
+            } catch (err) {
+            console.error(err);
+            }
+        };
+
+        if (token) loadMaintenance();
+    }, [token]);
+
     const [selectedAppliance, setSelectedAppliance] = useState(null);
 
-    //збереження оновленого maintenanceState в localStorage
+    //автозбереження
     useEffect(() => {
-        localStorage.setItem('flatTamagotchi', JSON.stringify(maintenanceState));
-    }, [maintenanceState]);
+        const saveMaintenance = async () => {
+            try {
+                if (!Object.keys(maintenanceState).length) return;
+                
+                await repairsApi.saveMaintenance(
+                { maintenanceStateJson: JSON.stringify(maintenanceState) },
+                token
+                ).catch(() => null); 
+            } catch (err) {
+                console.error(err);
+            }
+        };
 
-    //оновлення maintenanceState
+        if (token) saveMaintenance();
+    }, [maintenanceState, token]);
+
+    //оновлення статусу приладу при натисканні
     const handleClean = (id) => {
         setMaintenanceState(prev => ({
             ...prev, [id]: new Date().toISOString()

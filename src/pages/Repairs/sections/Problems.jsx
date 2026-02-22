@@ -29,7 +29,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Перевірте, чи немає світла у сусідів – це допоможе зрозуміти, чи проблема в будинку чи у всьому районі.<br /><br />
                     2. Подивіться щиток – чи не вибив автомат.<br /><br />
@@ -40,7 +40,7 @@ export default function ProblemsSection() {
                 </TextCard>
             </Row>
 
-            <Row reverse>
+            <Row $reverse>
                 <Media>
                 <InfoTitle>Вибило автомат</InfoTitle>
                 <Image>
@@ -48,7 +48,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     <strong>Автомат</strong> — це пристрій у електрощитку, який захищає проводку та техніку від перевантаження або короткого замикання. Простіше: це “запобіжник”, який сам вимикає електрику, коли виникає небезпека.<br /><br />
                     1. Не вмикайте автомат повторно багато разів без перевірки.<br /><br />
@@ -66,7 +66,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Не вмикайте світло, не запалюйте сірники, не вмикайте електроприлади – будь-яка іскра може спричинити вибух.<br /><br />
                     2. Перекрий газ (кран на плиті або загальний).<br /><br />
@@ -77,7 +77,7 @@ export default function ProblemsSection() {
                 </TextCard>
             </Row>
 
-            <Row reverse>
+            <Row $reverse>
                 <Media>
                 <InfoTitle>Протікання води</InfoTitle>
                 <Image>
@@ -85,7 +85,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Негайно перекрийте воду у квартирі або на стояку.<br /><br />
                     2. Попередьте сусідів, якщо вода може затопити їхні квартири.<br /><br />
@@ -104,7 +104,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Вимкніть живлення у щитку перед оглядом розетки.<br /><br />
                     2. Не користуйтеся розеткою, якщо вона іскрить, плавиться, смердить або нагрівається.<br /><br />
@@ -114,7 +114,7 @@ export default function ProblemsSection() {
                 </TextCard>
             </Row>
 
-            <Row reverse>
+            <Row $reverse>
                 <Media>
                 <InfoTitle>Проблеми з опаленням</InfoTitle>
                 <Image>
@@ -122,7 +122,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Подивіться, чи ввімкнений котел (на панелі має світитися лампочка або цифровий екран).<br /><br />
                     2. Переконайтеся, що він підключений до розетки або є подача газу (Якщо не впевнені, не відкривайте котел самостійно).<br /><br />
@@ -142,7 +142,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Відразу вимкніть живлення у щитку.<br /><br />
                     2. Не торкайтеся пошкоджених проводів, іскрящихся приладів чи розеток. Не гасіть іскри чи дроти водою. Вода - це провідник електрики!<br /><br />
@@ -152,7 +152,7 @@ export default function ProblemsSection() {
                 </TextCard>
             </Row>
 
-            <Row reverse>
+            <Row $reverse>
                 <Media>
                 <InfoTitle>Засмічена каналізація</InfoTitle>
                 <Image>
@@ -160,7 +160,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Не заливайте воду у забиту трубу – ризик затоплення.<br /><br />
                     2. Спробуйте прочистити вантузом, сантехнічним тросом або засобом для прочистки труб (тільки якщо впевнені у своїх силах).<br /><br />
@@ -178,7 +178,7 @@ export default function ProblemsSection() {
                 </Image>
                 </Media>
 
-                <TextCard as="div">
+                <TextCard>
                 <InfoText>
                     1. Не використовуйте воду для пиття та приготування їжі, поки не перевірите якість. Використовуйте бутильовану воду або перевірені фільтри.<br /><br />
                     2. Відкрийте кран холодної та гарячої води в кількох точках квартири. Якщо осад є тільки у гарячій воді, проблема може бути у бойлері або водонагрівачі. Якщо осад є у всіх кранах, причина, ймовірно, у трубах у будинку або у міському водопроводі.<br /><br />

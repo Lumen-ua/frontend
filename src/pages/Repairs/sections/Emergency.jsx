@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { HiDocumentDuplicate } from "react-icons/hi";
 import { FaSave } from "react-icons/fa";
+import { repairsApi } from "../../../api/repairsApi";
 
 import { 
     CardsGridEmergency,
@@ -24,6 +25,7 @@ import {
     GreyFrame,
 } from "../RepairsPage.styled";
 
+//звичайне поле введення
 const SimpleInput = ({ label, name, value, onChange }) => {
   return (
     <InputWrapper>
@@ -39,6 +41,7 @@ const SimpleInput = ({ label, name, value, onChange }) => {
   );
 };
 
+//розгорнутий інпут з коротким описом
 const ExpandableInput = ({ title, placeholder, name, value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -70,7 +73,8 @@ const ExpandableInput = ({ title, placeholder, name, value, onChange }) => {
 };
 
 export default function EmergencySection(){
-
+    const token = localStorage.getItem("lumen_token");
+    const [isSaved, setIsSaved] = useState(false);
     const [form, setForm] = useState({
         owner: "", jek: "", plumber: "", electric: "",     
         shield: "", gas: "", waterCold: "", waterHot: "",   
@@ -79,30 +83,44 @@ export default function EmergencySection(){
         inet: "", provider: "", code: ""                    
     });
 
-    const [isSaved, setIsSaved] = useState(false);
-
-    //оновлює дані форми
+    //оновлення поля форми
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
         setIsSaved(false);
     };
 
-    //зберігає дані із форми 
-    const handleSave = () => {
-        localStorage.setItem("emergencyForm", JSON.stringify(form));
+     //збереження форми на сервер
+    const handleSave = async () => {
+      const isEmpty = Object.values(form).every((value) => value.trim() === "");
+      if (isEmpty){
+        alert("Будь ласка, заповніть форму перед збереженням!")
+        return;
+      }
+      
+      try {
+        await repairsApi.saveEmergency(
+          { emergencyFormJson: JSON.stringify(form) },
+          token
+        ).catch(() => null); 
         setIsSaved(true);
+        alert("Дані збережено!");
+      } catch (err) {
+        console.error(err);
+        alert("Помилка збереження");
+      }
     };
 
-    //зчитує дані із форми
-    const handleLoad = () => {
-        const data = localStorage.getItem("emergencyForm");
-        if (data) {
-        setForm(JSON.parse(data));
+    //зчитування даних форми із сервера
+    const handleLoad = async () => {
+      try {
+        const data = await repairsApi.getAll(token);
+        setForm(JSON.parse(data.emergencyFormJson));
         alert("Дані успішно завантажено!");
-        } else {
-        alert("Збережених даних немає. Спочатку заповніть і збережіть форму.");
-        }
+      } catch (err) {
+        console.error(err);
+        alert("Помилка при завантаженні даних");
+      }
     };
 
     return (

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { repairsApi } from "../../api/repairsApi";
 
 import TemplatesSection from "./sections/Templates";
 import CheckListsSection from "./sections/Checklists";
@@ -26,7 +27,9 @@ import {
   MaterialsList,
   MaterialItem,
   BackButton,
-  PageTitle
+  PageTitle,
+  ProgressBadge,
+  AnimatedSection
 } from "./RepairsPage.styled";
 
 import { FaTools, FaBolt, FaBuilding, FaUserAlt, FaEnvelope, FaExclamationTriangle, FaHammer, FaPhoneAlt, FaFileAlt} from "react-icons/fa";
@@ -45,7 +48,46 @@ const topics = [
 
 export default function Repairs() {
   const [activeTopic, setActiveTopic] = useState("home");
+  const [checkedTopics, setCheckedTopics] = useState([]);
 
+  const token = localStorage.getItem("lumen_token");
+
+  //завантаження прогресу із сервера
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await repairsApi.getAll(token);
+
+        setCheckedTopics(JSON.parse(data.completedTopicsJson));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    if (token) loadData();
+  }, [token]);
+
+  const handleChange = async (topicId) => {
+    setActiveTopic(topicId); // перехід на обраний розділ
+
+    // відслідковування прогресу
+    if (topicId !== "home" && !checkedTopics.includes(topicId)) {
+      const newTopics = [...checkedTopics, topicId];
+      setCheckedTopics(newTopics);
+
+      // збереження прогресу на сервер
+      if (token) {
+        await repairsApi.saveProgress(
+          { completedTopicsJson: JSON.stringify(newTopics) },
+          token
+        ).catch(() => null);
+      }
+    }
+  };
+
+  const totalSteps = topics.length - 1;
+  const progress = Math.round((checkedTopics.length / totalSteps) * 100);
+  
   return (
     <RepairsPage>
       <RepairsContainer>
@@ -60,28 +102,30 @@ export default function Repairs() {
           <HeroIcon><FaTools /></HeroIcon>
         </HeroCard>
 
+        <ProgressBadge>Прогрес {progress}%</ProgressBadge>
+
         {activeTopic === "home" && (
           <>
             <CardsGrid>
-              <InfoCard onClick={() => setActiveTopic("problems")}>
+              <InfoCard onClick={() => handleChange("problems")}>
                 <InfoIcon><FaBolt /></InfoIcon>
                 <InfoTitle>Типові проблеми</InfoTitle>
                 <InfoText>Світло, газ, вода</InfoText>
               </InfoCard>
 
-              <InfoCard onClick={() => setActiveTopic("contacts")}>
+              <InfoCard onClick={() => handleChange("contacts")}>
                 <InfoIcon><FaBuilding /></InfoIcon>
                 <InfoTitle>Куди звертатися</InfoTitle>
                 <InfoText>ОСББ, орендодавець, аварійна служба, постачальники</InfoText>
               </InfoCard>
 
-              <InfoCard onClick={() => setActiveTopic("templates")}>
+              <InfoCard onClick={() => handleChange("templates")}>
                 <InfoIcon><FaEnvelope /></InfoIcon>
                 <InfoTitle>Приклади текстів звернень</InfoTitle>
                 <InfoText>Готові шаблони: електрика, скарги і т.д.</InfoText>
               </InfoCard>
 
-              <InfoCard onClick={() => setActiveTopic("safety")}>
+              <InfoCard onClick={() => handleChange("safety")}>
                 <InfoIcon><FaExclamationTriangle /></InfoIcon>
                 <InfoTitle>Інструкції з безпеки</InfoTitle>
                 <InfoText>Як максимально уникнути побутових проблем</InfoText>
@@ -91,16 +135,16 @@ export default function Repairs() {
             <MaterialsCard>
               <InfoTitle>Корисні матеріали</InfoTitle>
               <MaterialsList>
-                <MaterialItem onClick={() => setActiveTopic("checklist")}>
+                <MaterialItem onClick={() => handleChange("checklist")}>
                   <FaFileAlt /> Чеклист перевірки квартири
                 </MaterialItem>
-                <MaterialItem onClick={() => setActiveTopic("maintenance")}>
+                <MaterialItem onClick={() => handleChange("maintenance")}>
                   <FaUserAlt /> Профілактика по дому
                 </MaterialItem>
-                <MaterialItem onClick={() => setActiveTopic("electrician")}>
+                <MaterialItem onClick={() => handleChange("electrician")}>
                   <FaHammer /> Коли потрібен майстер
                 </MaterialItem>
-                <MaterialItem onClick={() => setActiveTopic("emergency")}>
+                <MaterialItem onClick={() => handleChange("emergency")}>
                   <FaPhoneAlt /> Збери тривожну валізу
                 </MaterialItem>
               </MaterialsList>
@@ -109,7 +153,7 @@ export default function Repairs() {
         )}
 
         {activeTopic !== "home" && (
-          <BackButton onClick={() => setActiveTopic("home")}>
+          <BackButton onClick={() => handleChange("home")}>
             ← Назад
           </BackButton>
         )}
@@ -120,21 +164,21 @@ export default function Repairs() {
               {topics.find(t => t.id === activeTopic)?.title}
             </PageTitle>
 
-            {activeTopic === "problems" && <ProblemsSection />}
+            {activeTopic === "problems" && <AnimatedSection><ProblemsSection /></AnimatedSection>}
 
-            {activeTopic === "contacts" && <ContactsSection />}
+            {activeTopic === "contacts" && <AnimatedSection><ContactsSection /></AnimatedSection>}
 
-            {activeTopic === "templates" && <TemplatesSection />}
+            {activeTopic === "templates" && <AnimatedSection><TemplatesSection /></AnimatedSection>}
 
-            {activeTopic === "safety" && <SafetySection />}
+            {activeTopic === "safety" && <AnimatedSection><SafetySection /></AnimatedSection>}
 
-            {activeTopic === "checklist" && <CheckListsSection />}
+            {activeTopic === "checklist" && <AnimatedSection><CheckListsSection /></AnimatedSection>}
 
-            {activeTopic === "maintenance" && <MaintenanceSection />}
+            {activeTopic === "maintenance" && <AnimatedSection><MaintenanceSection /></AnimatedSection>}
 
-            {activeTopic === "electrician" && <ElectricianSection />}
+            {activeTopic === "electrician" && <AnimatedSection><ElectricianSection /></AnimatedSection>}
 
-            {activeTopic === "emergency" && <EmergencySection />}
+            {activeTopic === "emergency" && <AnimatedSection><EmergencySection /></AnimatedSection>}
           </>
         )}
 
