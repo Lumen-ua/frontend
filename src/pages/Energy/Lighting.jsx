@@ -1,6 +1,6 @@
-﻿import React from "react";
+﻿import React, { useState } from "react";
 import styled from "styled-components";
-import { FiArrowLeft } from "react-icons/fi";
+import { FiArrowLeft, FiZap } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
 const ArticlePage = styled.div`
@@ -77,8 +77,73 @@ const ContentBlock = styled.div`
   }
 `;
 
+const CalculatorBox = styled.div`
+  background-color: #dcfce7; /* Світло-зелений */
+  border: 3px solid #166534;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 32px 0;
+  text-align: center;
+  box-shadow: 4px 4px 0px #166534; /* Brutalism shadow */
+`;
+
+const CalcTitle = styled.h3`
+  font-size: 20px;
+  font-weight: 800;
+  color: #14532d;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+`;
+
+const CalcInput = styled.input`
+  width: 80px;
+  padding: 8px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  border: 2px solid #166534;
+  border-radius: 8px;
+  margin: 0 10px;
+  outline: none;
+  background: white;
+  
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.3);
+  }
+`;
+
+const CalcResult = styled.div`
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 2px dashed #166534;
+  font-size: 18px;
+  font-weight: 600;
+  color: #14532d;
+
+  strong {
+    font-size: 24px;
+    color: #166534;
+    background: #bbf7d0;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+`;
+
 export default function Lighting() {
   const navigate = useNavigate();
+  const [bulbs, setBulbs] = useState(5); 
+  const savingsPerBulb = 350; 
+  const totalSavings = bulbs * savingsPerBulb;
+
+  const handleInputChange = (e) => {
+    const val = parseInt(e.target.value) || 0;
+    if (val >= 0 && val <= 100) {
+      setBulbs(val);
+    }
+  };
 
   return (
     <ArticlePage>
@@ -94,6 +159,34 @@ export default function Lighting() {
             Освітлення складає значну частину рахунку за електроенергію. 
             Правильний підхід дозволяє зменшити витрати на 50-70% без втрати комфорту.
           </p>
+
+          {}
+          <CalculatorBox>
+            <CalcTitle>
+               <FiZap size={24}/> Калькулятор вигоди
+            </CalcTitle>
+            <p style={{marginBottom: '12px'}}>Скільки звичайних ламп у вас вдома?</p>
+            
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+              <span style={{fontSize: '24px'}}>💡</span>
+              <CalcInput 
+                type="number" 
+                value={bulbs} 
+                onChange={handleInputChange} 
+                min="0" 
+                max="100"
+              />
+              <span style={{fontWeight: 'bold'}}>шт.</span>
+            </div>
+
+            <CalcResult>
+              Замінивши їх на LED, ви зекономите: <br/>
+              <div style={{marginTop: '8px'}}>
+                 ~ <strong>{totalSavings} грн</strong> на рік 💰
+              </div>
+            </CalcResult>
+          </CalculatorBox>
+          {}
 
           <h2>1. LED-лампи – це фундамент</h2>
           <p>
