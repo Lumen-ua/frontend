@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import { FiUser, FiMenu, FiEdit2, FiTarget, FiArrowLeft, FiAward, FiCheck, FiArrowRight, FiCamera } from 'react-icons/fi';
 
 import {
@@ -38,13 +38,48 @@ import {
 
 import { useAuth } from "../../context/AuthContext.jsx";
 import { resolveAvatarSrc } from "../../utils/avatar";
+import { budgetContentApi } from "../../api/budgetContent";
+
+const LS_PROGRESS_KEY = "lumen.progress.budget";
+
+const SIM_TO_ACHIEVEMENT_KEY = {
+  readBillSim: "budget_read_bill",
+  readIndicatorsSim: "budget_calculate_indicators",
+  billDetectiveSim: "budget_why_different_sums",
+  whatIfSim: "budget_forecast_calculator",
+};
+
+function safeParseJson(str, fallback) {
+  try {
+    const v = JSON.parse(str);
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readBudgetProgressFromLS() {
+  const raw = localStorage.getItem(LS_PROGRESS_KEY);
+  return safeParseJson(raw, { sims: {} });
+}
+
+function getCompletedAchievementsFromLS() {
+  const data = readBudgetProgressFromLS();
+  const sims = data?.sims || {};
+  const done = new Set();
+
+  Object.entries(SIM_TO_ACHIEVEMENT_KEY).forEach(([simId, achievementKey]) => {
+    const completed = Boolean(sims?.[simId]?.completed);
+    if (completed) done.add(achievementKey);
+  });
+
+  return done;
+}
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("main");
-  const { user, updateProfile, uploadAvatar } = useAuth();
+  const { user, token, updateProfile, uploadAvatar } = useAuth();
 
-
-  // Це поки локальні мета-дані (ти можеш потім підтягнути з бекенду)
   const [meta, setMeta] = useState({
     level: "Новачок",
     progress: 25,
@@ -65,28 +100,147 @@ export default function Profile() {
     }));
   }, [user]);
 
-  const achievementsData = useMemo(
-    () => [
-    { title: "Майстер Побуту", desc: "Пройти всі симуляції", done: false },
-    { title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: true },
-    { title: "Захисник Комфорту", desc: "Пройти 5 симуляцій середнього рівня", done: false },
-    { title: "Платіжний Дебют", desc: "Перший раз оплатити платіжку", done: false },
-    { title: "Побутовий Філософ", desc: "Переглянути 10 порад", done: false },
-    { title: "Еко-Гуру", desc: "Прочитати всі поради в розділі економії", done: false },
-    { title: "Я у домі!", desc: "Заповнити профіль", done: true },
-    { title: "Домашній Супергерой", desc: "Успішно пройти всі модулі курсу", done: false },
-    { title: "Універсальний Учень", desc: "Пройти хоча б одну симуляцію", done: false },
-    { title: "Пішло поїхало", desc: "Зробити перший клік у симуляції", done: false },
-    ],
-    []
+  const [completedBudgetSims, setCompletedBudgetSims] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadBudgetAchievements() {
+      try {
+        if (!token) return;
+
+        const res = await budgetContentApi.get(token);
+        const raw =
+          res?.completedSimulationsJson ??
+          res?.CompletedSimulationsJson ??
+          "[]";
+
+        const parsed = JSON.parse(raw);
+        if (alive) setCompletedBudgetSims(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        if (alive) setCompletedBudgetSims([]);
+      }
+    }
+
+    loadBudgetAchievements();
+    return () => {
+      alive = false;
+    };
+  }, [token]);
+
+  const [completedFromLS, setCompletedFromLS] = useState(() =>
+    Array.from(getCompletedAchievementsFromLS())
   );
 
-  const achievementsReceived = achievementsData.filter(a => a.done).length;
-  const achievementsPercent = (achievementsReceived / achievementsData.length) * 100;
+  useEffect(() => {
+    const syncFromLS = () => {
+      const setDone = getCompletedAchievementsFromLS();
+      setCompletedFromLS(Array.from(setDone));
+    };
+
+    const onCustom = () => syncFromLS();
+
+    const onStorage = (e) => {
+      if (e.key === LS_PROGRESS_KEY) syncFromLS();
+    };
+
+    window.addEventListener("lumen:progress-updated", onCustom);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("lumen:progress-updated", onCustom);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
+
+  const completedSet = useMemo(() => {
+    const s = new Set();
+    completedBudgetSims.forEach((k) => s.add(k));
+    completedFromLS.forEach((k) => s.add(k));
+    return s;
+  }, [completedBudgetSims, completedFromLS]);
+
+  const achievementsData = useMemo(
+    () => [
+      {
+        key: "master_all",
+        title: "Майстер Побуту",
+        desc: "Пройти всі симуляції",
+        done: false, 
+      },
+      {
+        key: "easy_5",
+        title: "Легкий на Підйом",
+        desc: "Пройти 5 симуляцій легкого рівня",
+        done: false,
+      },
+      {
+        key: "mid_5",
+        title: "Захисник Комфорту",
+        desc: "Пройти 5 симуляцій середнього рівня",
+        done: false,
+      },
+      {
+        key: "budget_read_bill",
+        title: "Як читати платіжку",
+        desc: "Пройти симуляцію читання платіжки",
+        done: completedSet.has("budget_read_bill"),
+      },
+      {
+        key: "budget_calculate_indicators",
+        title: "Як рахуються показники",
+        desc: "Пройти симуляцію розрахунку показників",
+        done: completedSet.has("budget_calculate_indicators"),
+      },
+      {
+        key: "budget_why_different_sums",
+        title: "Чому приходять різні суми",
+        desc: "Пройти симуляцію пошуку причин різниці сум",
+        done: completedSet.has("budget_why_different_sums"),
+      },
+      {
+        key: "budget_forecast_calculator",
+        title: "Калькулятор прогнозу витрат",
+        desc: "Пройти симуляцію прогнозування витрат",
+        done: completedSet.has("budget_forecast_calculator"),
+      },
+
+      {
+        key: "tips_10",
+        title: "Побутовий Філософ",
+        desc: "Переглянути 10 порад",
+        done: false,
+      },
+      {
+        key: "eco_all",
+        title: "Еко-Гуру",
+        desc: "Прочитати всі поради в розділі економії",
+        done: false,
+      },
+      {
+        key: "profile_filled",
+        title: "Я у домі!",
+        desc: "Заповнити профіль",
+        done: true, 
+      },
+    ],
+    [completedSet]
+  );
+
+  const achievementsReceived = achievementsData.filter((a) => a.done).length;
+  const achievementsPercent =
+    achievementsData.length > 0
+      ? (achievementsReceived / achievementsData.length) * 100
+      : 0;
+
+  useEffect(() => {
+    const p = Math.round(achievementsPercent);
+    setMeta((prev) => (prev.progress === p ? prev : { ...prev, progress: p }));
+  }, [achievementsPercent]);
 
   const avatarSrc = resolveAvatarSrc(user?.avatarUrl);
 
-  const goBack = () => setActiveTab('main');
+  const goBack = () => setActiveTab("main");
 
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
@@ -108,7 +262,12 @@ export default function Profile() {
       const nameTrim = (editFormData.name || "").trim();
       if (nameTrim && nameTrim !== (user?.name || "")) payload.name = nameTrim;
 
-      if (editFormData.newPassword || editFormData.confirmPassword || editFormData.oldPassword) {
+      const anyPasswordTouched =
+        editFormData.newPassword ||
+        editFormData.confirmPassword ||
+        editFormData.oldPassword;
+
+      if (anyPasswordTouched) {
         if (!editFormData.oldPassword) {
           alert("Для зміни пароля введіть поточний пароль.");
           return;
@@ -141,9 +300,8 @@ export default function Profile() {
     } catch (err) {
       alert(err?.message || "Не вдалося зберегти зміни");
     }
-  }; 
+  };
 
-  // Зміна мети
   const handleChangeGoal = (newGoal) => {
     setMeta((prev) => ({ ...prev, currentGoal: newGoal }));
     goBack();
@@ -151,9 +309,8 @@ export default function Profile() {
 
   return (
     <ProfileWrapper>
-      
       {/* --- ГОЛОВНА СТОРІНКА --- */}
-      {activeTab === 'main' && (
+      {activeTab === "main" && (
         <>
           <ProfileTitle>Профіль</ProfileTitle>
 
@@ -162,11 +319,13 @@ export default function Profile() {
               <AvatarPlaceholder>
                 {avatarSrc ? <img src={avatarSrc} alt="Avatar" /> : <FiUser />}
               </AvatarPlaceholder>
+
               <UserDetails>
                 <UserNameRow>
                   <UserName>{user?.name || "User"}</UserName>
-                  <EditButton 
-                    aria-label="Редагувати" 
+
+                  <EditButton
+                    aria-label="Редагувати"
                     onClick={() => {
                       setEditFormData((prev) => ({
                         ...prev,
@@ -202,23 +361,33 @@ export default function Profile() {
             <ContentCard>
               <CardHeader>
                 <CardTitle>Досягнення</CardTitle>
-                <FiMenu 
-                  style={{ cursor: 'pointer', fontSize: '24px' }} 
-                  onClick={() => setActiveTab('achievements')} 
+                <FiMenu
+                  style={{ cursor: "pointer", fontSize: "24px" }}
+                  onClick={() => setActiveTab("achievements")}
                 />
               </CardHeader>
+
               <ProgressSection>
-                 <ProgressBarContainer>
-                    <ProgressBarFill $percent={achievementsPercent} />
-                 </ProgressBarContainer>
-                 <div style={{ marginTop: '8px', fontSize: '14px', color: '#121212' }}>
-                    {achievementsReceived} з {achievementsData.length} отримано
-                 </div>
+                <ProgressBarContainer>
+                  <ProgressBarFill $percent={achievementsPercent} />
+                </ProgressBarContainer>
+
+                <div
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "14px",
+                    color: "#121212",
+                  }}
+                >
+                  {achievementsReceived} з {achievementsData.length} отримано
+                </div>
               </ProgressSection>
             </ContentCard>
 
             <ContentCard>
-              <CardTitle style={{ marginBottom: '16px' }}>Персональні рекомендації</CardTitle>
+              <CardTitle style={{ marginBottom: "16px" }}>
+                Персональні рекомендації
+              </CardTitle>
               <List>
                 <ListItem>Склади персональний бюджет</ListItem>
                 <ListItem>Створи регулярну оплату рахунків</ListItem>
@@ -227,13 +396,22 @@ export default function Profile() {
             </ContentCard>
 
             {/* Секція Мети */}
-            <ContentCard style={{ gridColumn: '1 / -1' }}> 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-                <div style={{ flex: '1 1 300px' }}>
+            <ContentCard style={{ gridColumn: "1 / -1" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                  gap: "20px",
+                }}
+              >
+                <div style={{ flex: "1 1 300px" }}>
                   <CardHeader>
                     <CardTitle>Поточна мета: «{meta.currentGoal}»</CardTitle>
                     <FiTarget size={24} />
                   </CardHeader>
+
                   <List>
                     <ListItem>Склади персональний бюджет</ListItem>
                     <ListItem>Створи регулярну оплату рахунків</ListItem>
@@ -241,13 +419,26 @@ export default function Profile() {
                   </List>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: '200px' }}>
-                   <span style={{ marginBottom: '12px', fontWeight: 'bold', color: '#121212' }}>
-                     Хочете змінити пріоритети?
-                   </span>
-                   <ActionButton onClick={() => setActiveTab('goals')}>
-                     Обрати нову мету
-                   </ActionButton>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    minWidth: "200px",
+                  }}
+                >
+                  <span
+                    style={{
+                      marginBottom: "12px",
+                      fontWeight: "bold",
+                      color: "#121212",
+                    }}
+                  >
+                    Хочете змінити пріоритети?
+                  </span>
+                  <ActionButton onClick={() => setActiveTab("goals")}>
+                    Обрати нову мету
+                  </ActionButton>
                 </div>
               </div>
             </ContentCard>
@@ -255,25 +446,43 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВКЛАДКА: ВСІ ДОСЯГНЕННЯ --- */}
-      {activeTab === 'achievements' && (
+      {activeTab === "achievements" && (
         <>
           <BackButton onClick={goBack}>
             <FiArrowLeft /> Назад до профілю
           </BackButton>
-          
-          <ContentCard style={{ minHeight: 'auto' }}>
-            <CardTitle style={{ fontSize: '28px', marginBottom: '24px' }}>Всі досягнення</CardTitle>
-            <ul style={{ listStyle: 'none', padding: 0 }}>
+
+          <ContentCard style={{ minHeight: "auto" }}>
+            <CardTitle style={{ fontSize: "28px", marginBottom: "24px" }}>
+              Всі досягнення
+            </CardTitle>
+
+            <ul style={{ listStyle: "none", padding: 0 }}>
               {achievementsData.map((item, index) => (
-                <AchievementRow key={index}>
-                  <div style={{ fontSize: '24px', color: '#111' }}><FiAward /></div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '800', margin: '0 0 4px' }}>«{item.title}»</h3>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#555' }}>{item.desc}</p>
+                <AchievementRow key={`${item.key}-${index}`}>
+                  <div style={{ fontSize: "24px", color: "#111" }}>
+                    <FiAward />
                   </div>
+
+                  <div style={{ flex: 1 }}>
+                    <h3
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: "800",
+                        margin: "0 0 4px",
+                      }}
+                    >
+                      «{item.title}»
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
+                      {item.desc}
+                    </p>
+                  </div>
+
                   {item.done && (
-                    <CheckIcon><FiCheck /></CheckIcon>
+                    <CheckIcon>
+                      <FiCheck />
+                    </CheckIcon>
                   )}
                 </AchievementRow>
               ))}
@@ -282,36 +491,49 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВКЛАДКА: ЗМІНА МЕТИ --- */}
-      {activeTab === 'goals' && (
+      {activeTab === "goals" && (
         <>
           <BackButton onClick={goBack}>
             <FiArrowLeft /> Скасувати
           </BackButton>
 
-          <ContentCard style={{ minHeight: 'auto' }}>
-            <CardTitle style={{ fontSize: '28px', marginBottom: '24px' }}>Оберіть нову мету</CardTitle>
-            
+          <ContentCard style={{ minHeight: "auto" }}>
+            <CardTitle style={{ fontSize: "28px", marginBottom: "24px" }}>
+              Оберіть нову мету
+            </CardTitle>
+
             <GoalButton onClick={() => handleChangeGoal("Фінансова грамотність")}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '800' }}>Фінансова грамотність</h3>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Навчитись вести бюджет та розуміти платіжки</p>
+                <h3 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "800" }}>
+                  Фінансова грамотність
+                </h3>
+                <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
+                  Навчитись вести бюджет та розуміти платіжки
+                </p>
               </div>
               <FiArrowRight size={24} />
             </GoalButton>
 
             <GoalButton onClick={() => handleChangeGoal("Енергоефективність")}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '800' }}>Енергоефективність</h3>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Зменшити споживання та зберегти планету</p>
+                <h3 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "800" }}>
+                  Енергоефективність
+                </h3>
+                <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
+                  Зменшити споживання та зберегти планету
+                </p>
               </div>
               <FiArrowRight size={24} />
             </GoalButton>
 
             <GoalButton onClick={() => handleChangeGoal("Без боргів")}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '800' }}>Без боргів</h3>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Розібратись з боргами та пенею</p>
+                <h3 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "800" }}>
+                  Без боргів
+                </h3>
+                <p style={{ margin: 0, color: "#666", fontSize: "14px" }}>
+                  Розібратись з боргами та пенею
+                </p>
               </div>
               <FiArrowRight size={24} />
             </GoalButton>
@@ -319,40 +541,44 @@ export default function Profile() {
         </>
       )}
 
-      {/* --- ВКЛАДКА: РЕДАГУВАННЯ --- */}
-      {activeTab === 'edit' && (
+      {activeTab === "edit" && (
         <>
           <BackButton onClick={goBack}>
             <FiArrowLeft /> Назад
           </BackButton>
 
-          <ContentCard style={{ alignItems: 'center', minHeight: 'auto', padding: '40px' }}>
-            <CardTitle style={{ fontSize: '28px', marginBottom: '32px' }}>Редагувати профіль</CardTitle>
-            
+          <ContentCard style={{ alignItems: "center", minHeight: "auto", padding: "40px" }}>
+            <CardTitle style={{ fontSize: "28px", marginBottom: "32px" }}>
+              Редагувати профіль
+            </CardTitle>
+
             <FormColumn>
-              
               <AvatarUploadWrapper>
                 <AvatarPlaceholder>
                   {avatarSrc ? <img src={avatarSrc} alt="Avatar" /> : <FiUser />}
                 </AvatarPlaceholder>
+
                 <UploadButton>
-                  <FiCamera style={{ marginRight: '6px' }} />
+                  <FiCamera style={{ marginRight: "6px" }} />
                   Змінити фото
-                  <HiddenFileInput type="file" accept="image/*" onChange={handleImageChange} />
+                  <HiddenFileInput
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
                 </UploadButton>
               </AvatarUploadWrapper>
 
               <InputGroup>
                 <label>Ваше ім'я</label>
-                {/* Двостороннє зв'язування: value + onChange */}
-                <input 
-                  type="text" 
-                  value={editFormData.name} 
-                  onChange={(e) => setEditFormData({...editFormData, name: e.target.value})} 
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) =>
+                    setEditFormData((p) => ({ ...p, name: e.target.value }))
+                  }
                 />
               </InputGroup>
-
-              {/* Пошта відсутня за вашим проханням */}
 
               <Divider />
 
@@ -360,29 +586,50 @@ export default function Profile() {
 
               <InputGroup>
                 <label>Поточний пароль</label>
-                <input type="password" placeholder="Введіть поточний пароль" value={editFormData.oldPassword} onChange={(e) => setEditFormData((p) => ({ ...p, oldPassword: e.target.value }))}/>
+                <input
+                  type="password"
+                  placeholder="Введіть поточний пароль"
+                  value={editFormData.oldPassword}
+                  onChange={(e) =>
+                    setEditFormData((p) => ({ ...p, oldPassword: e.target.value }))
+                  }
+                />
               </InputGroup>
 
               <InputGroup>
                 <label>Новий пароль</label>
-                <input type="password" placeholder="Введіть новий пароль" value={editFormData.newPassword} onChange={(e) => setEditFormData((p) => ({ ...p, newPassword: e.target.value }))}/>
+                <input
+                  type="password"
+                  placeholder="Введіть новий пароль"
+                  value={editFormData.newPassword}
+                  onChange={(e) =>
+                    setEditFormData((p) => ({ ...p, newPassword: e.target.value }))
+                  }
+                />
               </InputGroup>
 
               <InputGroup>
                 <label>Підтвердити пароль</label>
-                <input type="password" placeholder="Повторіть пароль" value={editFormData.confirmPassword} onChange={(e) => setEditFormData((p) => ({ ...p, confirmPassword: e.target.value }))}/>
+                <input
+                  type="password"
+                  placeholder="Повторіть пароль"
+                  value={editFormData.confirmPassword}
+                  onChange={(e) =>
+                    setEditFormData((p) => ({
+                      ...p,
+                      confirmPassword: e.target.value,
+                    }))
+                  }
+                />
               </InputGroup>
 
-              {/* Кнопка зберігає зміни і оновлює головний екран */}
-              <ActionButton onClick={handleSaveProfile} style={{ marginTop: '16px' }}>
+              <ActionButton onClick={handleSaveProfile} style={{ marginTop: "16px" }}>
                 Зберегти зміни
               </ActionButton>
-
             </FormColumn>
           </ContentCard>
         </>
       )}
-
     </ProfileWrapper>
   );
-};
+}

@@ -376,20 +376,7 @@ export const ActionRow = styled.div`
   flex-wrap: wrap;
 `;
 
-export const PrimaryBtn = styled.button`
-  flex: 1 1 180px;
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: ${accent};
-  font-size: 14px;
-  font-weight: 900;
-  cursor: pointer;
 
-  &:active {
-    transform: translateY(1px);
-  }
-`;
 
 export const SecondaryBtn = styled.button`
   flex: 1 1 180px;

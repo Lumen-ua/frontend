@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Wrap,
   Head,
@@ -41,6 +41,9 @@ import {
   Input,
 } from "./WhatIfSim.styled";
 
+import { useAuth } from "../../../../context/AuthContext.jsx";
+import { budgetContentApi } from "../../../../api/budgetContent";
+
 const fmtMoney = (n) =>
   new Intl.NumberFormat("uk-UA", {
     minimumFractionDigits: 0,
@@ -54,22 +57,26 @@ const fmtKwh = (n) =>
   }).format(Math.round(n));
 
 export default function WhatIfSim() {
-  const [power, setPower] = useState(2); 
-  const [hours, setHours] = useState(8); 
-  const [days, setDays] = useState(30); 
-  const [tariff, setTariff] = useState(2.64); 
-  const [baseBill, setBaseBill] = useState(836); 
+  const { token } = useAuth();
+  const [achievementSent, setAchievementSent] = useState(false);
+
+  const [power, setPower] = useState(2);
+  const [hours, setHours] = useState(8);
+  const [days, setDays] = useState(30);
+  const [tariff, setTariff] = useState(2.64);
+  const [baseBill, setBaseBill] = useState(836);
 
   const [isCalculated, setIsCalculated] = useState(false);
 
   const calc = useMemo(() => {
-    const extraKwh = power * hours * days; 
-    const extraMoney = extraKwh * tariff; 
-    const after = baseBill + extraMoney; 
+    const extraKwh = power * hours * days;
+    const extraMoney = extraKwh * tariff;
+    const after = baseBill + extraMoney;
     return { extraKwh, extraMoney, after };
   }, [power, hours, days, tariff, baseBill]);
 
   const onCalculate = () => setIsCalculated(true);
+
   const onReset = () => {
     setPower(2);
     setHours(8);
@@ -77,7 +84,23 @@ export default function WhatIfSim() {
     setTariff(2.64);
     setBaseBill(836);
     setIsCalculated(false);
+    setAchievementSent(false);
   };
+
+  // ✅ Досягнення: “калькулятор прогнозу витрат”
+  useEffect(() => {
+    const send = async () => {
+      if (!token) return;
+      if (!isCalculated) return;
+      if (achievementSent) return;
+
+      try {
+        await budgetContentApi.complete(token, "budget_forecast_calculator");
+        setAchievementSent(true);
+      } catch (_) {}
+    };
+    send();
+  }, [token, isCalculated, achievementSent]);
 
   const maxBar = Math.max(baseBill, calc.after);
   const baseH = maxBar ? (baseBill / maxBar) * 100 : 0;
@@ -99,7 +122,6 @@ export default function WhatIfSim() {
         </StepTitle>
 
         <ScenarioGrid>
-          {/* Потужність */}
           <ScenarioItem>
             <ScenarioLabelRow>
               <StepBadge $small>1</StepBadge>
@@ -140,7 +162,6 @@ export default function WhatIfSim() {
             <SmallHint>потужність (кВт)</SmallHint>
           </ScenarioItem>
 
-          {/* Години */}
           <ScenarioItem>
             <ScenarioLabelRow>
               <StepBadge $small>2</StepBadge>
@@ -181,7 +202,6 @@ export default function WhatIfSim() {
             <SmallHint>годин/день</SmallHint>
           </ScenarioItem>
 
-          {/* Дні */}
           <ScenarioItem>
             <ScenarioLabelRow>
               <StepBadge $small>3</StepBadge>
@@ -225,7 +245,6 @@ export default function WhatIfSim() {
 
         <Divider />
 
-        {/* Налаштування тарифу та "до" */}
         <InputRow>
           <div>
             <InputLabel>Тариф (грн/кВт·год)</InputLabel>
@@ -259,7 +278,6 @@ export default function WhatIfSim() {
           </PrimaryBtn>
         </ActionRow>
 
-        {/* РЕЗУЛЬТАТ */}
         {isCalculated ? (
           <ResultBlock>
             <StepTitle>
@@ -309,7 +327,7 @@ export default function WhatIfSim() {
               <NoteDot>💡</NoteDot>
               <NoteText>
                 Нотатка: якщо в тебе є <b>борг</b> або <b>переплата</b> — врахуй це окремо, бо ця
-                симуляція показує саме <b>додаткову</b> суму від обігрівача.
+                симуляція показує саме <b>додаткову</b> суму.
               </NoteText>
             </Note>
           </ResultBlock>

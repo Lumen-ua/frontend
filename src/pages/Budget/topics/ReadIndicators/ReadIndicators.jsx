@@ -28,7 +28,6 @@ import {
   StepsList,
 } from "./ReadIndicators.styled";
 
-import ReadIndicatorsSim from "../../simulations/ReadIndicatorsSim/ReadIndicatorsSim";
 import SubmitReadingsSim from "../../simulations/SubmitReadingsSim/SubmitReadingsSim";
 
 export default function ReadIndicators() {
@@ -267,22 +266,6 @@ export default function ReadIndicators() {
             </CardBody>
           </Card>
 
-          {/* Практика: симуляція */}
-          <Card $span2>
-            <CardHeader>
-              <Badge>🎮</Badge>
-              <CardTitle>Практика: “Передай показники правильно”</CardTitle>
-            </CardHeader>
-
-            <CardBody>
-              <Paragraph>
-                Тепер спробуй сам(а): порахуй споживання, обери тариф і введи суму.
-                Якщо помилишся — система підкаже, у якому кроці.
-              </Paragraph>
-
-              <ReadIndicatorsSim />
-            </CardBody>
-          </Card>
 
           {/* Практика 2 */}
           <Card $span2>
