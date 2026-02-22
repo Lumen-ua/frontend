@@ -1,323 +1,273 @@
 import styled from "styled-components";
 
-export const ReadBillPage = styled.section`
+const accent = "var(--color-accent, #ffb340)";
+const muted = "var(--color-text-muted, rgba(0,0,0,0.55))";
+
+export const Page = styled.section`
   width: 100%;
-  min-height: calc(100vh - var(--header-h));
-  padding: 18px 12px 28px;
+  padding: 22px 12px 34px;
 `;
 
-export const ReadBillContainer = styled.div`
+export const Container = styled.div`
   max-width: 1120px;
   margin: 0 auto;
 `;
 
-export const ReadBillHeader = styled.header`
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  overflow: hidden;
-`;
-
-export const ReadBillHeaderTop = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  align-items: start;
-  padding: 16px 18px 12px;
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const ReadBillTitle = styled.h1`
-  margin: 0 0 6px;
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1.15;
-  letter-spacing: 0.2px;
-
-  @media (max-width: 520px) {
-    font-size: 18px;
-  }
-`;
-
-export const ReadBillSubTitle = styled.p`
+export const TopTitle = styled.h1`
   margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--color-text-muted);
-  max-width: 620px;
-`;
-
-export const ReadBillProgress = styled.div`
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.16);
-  border-radius: 12px;
-  padding: 8px 12px;
-
-  font-size: 12px;
+  font-size: 30px;
   font-weight: 900;
-  line-height: 1;
-  height: fit-content;
+  letter-spacing: 0.2px;
+
+  span {
+    font-size: 18px;
+    font-weight: 900;
+    color: rgba(0,0,0,0.55);
+  }
 
   @media (max-width: 520px) {
-    justify-self: start;
+    font-size: 22px;
+
+    span {
+      font-size: 14px;
+    }
   }
 `;
 
-export const ReadBillOrangeBar = styled.div`
-  background: var(--color-accent);
-  color: #111;
-  padding: ${({ $big }) => ($big ? "10px 18px" : "8px 14px")};
-  font-size: ${({ $big }) => ($big ? "13px" : "12px")};
-  font-weight: 900;
-  letter-spacing: 0.2px;
-  text-transform: ${({ $big }) => ($big ? "none" : "none")};
-
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+export const TopSubTitle = styled.p`
+  margin: 10px 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: ${muted};
+  max-width: 860px;
 `;
 
-export const ReadBillBillImageWrap = styled.div`
-  padding: 12px 18px 18px;
-
-  /* ✅ обмеження розміру, щоб не милити */
-  display: flex;
-  justify-content: center;
-`;
-
-export const ReadBillBillImage = styled.img`
-  width: 100%;
-  height: auto;
-  display: block;
-
-  /* ✅ головне: не розтягуємо фото надмірно */
-  max-width: 980px;
-
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 12px;
-  background: #f7f7f7;
-`;
-
-/* ✅ НОВЕ: замість колонок — сітка секцій */
-export const ReadBillMainGrid = styled.div`
-  margin-top: 14px;
+export const ContentGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  align-items: stretch;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
 `;
 
-export const ReadBillSectionCard = styled.section`
+export const Card = styled.section`
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
 
-  /* ✅ щоб "Порахуємо суму" стояло під першою колонкою */
-  ${({ $span1 }) =>
-    $span1
-      ? `
-    grid-column: 1 / span 1;
-  `
-      : ""}
+  ${({ $span2 }) => ($span2 ? "grid-column: 1 / -1;" : "")}
 
   @media (max-width: 980px) {
     grid-column: auto;
   }
 `;
 
-export const ReadBillSectionHeader = styled.div`
-  ${"" /* ✅ помаранчева смуга як у макеті */}
-  background: var(--color-accent);
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+export const CardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
 `;
 
-export const ReadBillSectionTitle = styled.h2`
+export const Badge = styled.div`
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: ${accent};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  border: 1px solid rgba(0,0,0,0.12);
+`;
+
+export const CardTitle = styled.h2`
   margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+
+  @media (max-width: 520px) {
+    font-size: 16px;
+  }
+`;
+
+export const CardBody = styled.div`
+  padding: 0 14px 14px;
+`;
+
+export const Split = styled.div`
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 14px;
+  align-items: start;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const SplitLeft = styled.div`
+  min-width: 0;
+`;
+
+export const SplitRight = styled.div`
+  min-width: 0;
+`;
+
+export const Paragraph = styled.p`
+  margin: 8px 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: rgba(0,0,0,0.78);
+`;
+
+export const MiniTitle = styled.div`
+  margin-top: 10px;
   font-size: 13px;
   font-weight: 900;
-  letter-spacing: 0.2px;
+  color: rgba(0,0,0,0.85);
 `;
 
-export const ReadBillCardText = styled.div`
-  padding: 12px 12px 0;
-  font-size: 11.5px;
-  font-weight: 700;
-  line-height: 1.45;
-  color: #111;
+export const Muted = styled.span`
+  color: ${muted};
+  font-weight: 800;
 `;
 
-export const ReadBillList = styled.ul`
-  margin: 8px 0 0;
-  padding-left: 16px;
-  font-size: 11.5px;
-  font-weight: 700;
-  line-height: 1.45;
-  color: #111;
+export const BulletList = styled.ul`
+  margin: 10px 0 0;
+  padding-left: 18px;
 
   li {
-    margin: 4px 0;
-  }
-`;
-
-export const ReadBillDivider = styled.div`
-  height: 1px;
-  background: rgba(0, 0, 0, 0.08);
-  margin: 10px 12px;
-`;
-
-export const ReadBillMiniCard = styled.div`
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 10px;
-  padding: 10px;
-  margin: 12px 12px 0;
-`;
-
-export const ReadBillMiniCardTitle = styled.h3`
-  margin: 0 0 6px;
-  font-size: 11.5px;
-  font-weight: 900;
-`;
-
-export const ReadBillMiniCardText = styled.p`
-  margin: 0;
-  font-size: 11.5px;
-  font-weight: 700;
-  line-height: 1.45;
-`;
-
-export const ReadBillCalcBox = styled.div`
-  background: #fafafa;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 10px;
-  padding: 10px;
-  margin: 12px 12px 0;
-`;
-
-export const ReadBillCalcTitle = styled.div`
-  font-size: 11.5px;
-  font-weight: 900;
-  margin-bottom: 8px;
-`;
-
-export const ReadBillCalcRow = styled.div`
-  margin-bottom: 8px;
-`;
-
-export const ReadBillInput = styled.input`
-  width: 100%;
-  height: 36px;
-  padding: 0 10px;
-
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 10px;
-  background: #fff;
-
-  font-size: 11.5px;
-  font-weight: 700;
-
-  &::placeholder {
-    color: rgba(0, 0, 0, 0.45);
+    margin: 6px 0;
+    font-size: 13px;
     font-weight: 700;
-  }
-
-  &:focus-visible {
-    outline: 3px solid #111;
-    outline-offset: 2px;
+    line-height: 1.4;
+    color: rgba(0,0,0,0.75);
   }
 `;
 
-export const ReadBillButton = styled.button`
-  width: 100%;
-  height: 38px;
+export const Divider = styled.div`
+  height: 1px;
+  background: rgba(0,0,0,0.08);
+  margin: 12px 0;
+`;
 
-  border: 2px solid #111;
-  border-radius: 10px;
+export const Figure = styled.figure`
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: #fff;
+`;
 
-  background: var(--color-accent);
-  color: #111;
+export const FigureTop = styled.div`
+  background: ${accent};
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+`;
 
-  font-size: 12px;
+export const FigureTopTitle = styled.div`
+  font-size: 13px;
   font-weight: 900;
+`;
 
-  box-shadow: 0 3px 0 #111;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+export const FigureBody = styled.div`
+  padding: 10px;
+
+  img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.10);
+    background: #f7f7f7;
+  }
+`;
+
+export const NoteBox = styled.div`
+  margin-top: 10px;
+  background: rgba(255, 179, 64, 0.18);
+  border: 1px solid rgba(255, 179, 64, 0.35);
+  border-radius: 12px;
+  padding: 10px 10px;
+`;
+
+export const NoteTitle = styled.div`
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 6px;
+`;
+
+export const NoteList = styled.ul`
+  margin: 0;
+  padding-left: 18px;
+
+  li {
+    margin: 6px 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.78);
+  }
+`;
+
+export const TwoCols = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+
+  @media (max-width: 980px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const Bubble = styled.div`
+  margin-top: 12px;
+  background: rgba(255, 179, 64, 0.25);
+  border: 1px solid rgba(255, 179, 64, 0.35);
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 900;
+  color: rgba(0,0,0,0.7);
+  width: fit-content;
+`;
+
+export const BackBtn = styled.button`
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 179, 64, 0.18);
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.15s ease;
 
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 0 #111;
+    background: rgba(255, 179, 64, 0.32);
   }
 
   &:active {
-    transform: translateY(0px);
-    box-shadow: 0 2px 0 #111;
-  }
-
-  &:focus-visible {
-    outline: 3px solid #111;
-    outline-offset: 3px;
+    transform: translateY(1px);
   }
 `;
 
-export const ReadBillFootnote = styled.p`
-  margin: 10px 12px 12px;
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: #111;
-`;
+export const StepsList = styled.ol`
+  margin: 10px 0 0;
+  padding-left: 18px;
 
-export const ReadBillMuted = styled.span`
-  color: var(--color-text-muted);
-`;
-
-export const ReadBillTable = styled.table`
-  width: calc(100% - 24px);
-  margin: 12px 12px 0;
-  border-collapse: collapse;
-  overflow: hidden;
-
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-`;
-
-export const ReadBillTableHead = styled.tr`
-  background: #f6f6f6;
-`;
-
-export const ReadBillTableRow = styled.tr`
-  background: ${({ $total }) => ($total ? "#f9f2d3" : "#fff")};
-
-  & + & {
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  li {
+    margin: 6px 0;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.4;
+    color: rgba(0,0,0,0.72);
   }
-`;
-
-export const ReadBillTableCell = styled.td`
-  padding: 8px 10px;
-  font-size: 11px;
-  font-weight: 800;
-  color: #111;
-
-  text-align: ${({ $right }) => ($right ? "right" : "left")};
-
-  ${({ as }) =>
-    as === "th"
-      ? `
-    font-weight: 900;
-    font-size: 11px;
-  `
-      : ""}
 `;

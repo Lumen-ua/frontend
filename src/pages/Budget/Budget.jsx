@@ -60,26 +60,31 @@ export default function Budget() {
       title: "Як рахуються показники",
       text: "Одноставковий чи двоставковий тариф",
       Icon: FiActivity,
+      path: "/budget/read-indicators",
     },
     {
       title: "Формується кінцева сума",
       text: "Період, прогнозовані витрати",
       Icon: FiTrendingUp,
+      path: "/budget/final-sum",
     },
     {
       title: "Чому приходять різні суми",
       text: "Абонплата, несподівані рядки",
       Icon: FiCreditCard,
+      path: "/budget/why-different-sums",
     },
     {
       title: "Калькулятор прогнозу",
       text: "Що буде, якщо…",
       Icon: FaCalculator,
+      path: "/budget/forecast-calculator",
     },
     {
       title: "Місячне бюджетування",
       text: "Як спланувати витрати на місяць",
       Icon: FiCalendar,
+      path: "/budget/monthly-budgeting",
     },
   ];
 

@@ -1,6 +1,5 @@
 import styled from "styled-components";
 
-
 export const DashboardPage = styled.div`
   width: 100%;
   min-height: calc(100vh - var(--header-h));
@@ -19,7 +18,6 @@ export const DashboardContainer = styled.div`
   max-width: var(--container-max);
   margin: 0 auto;
 `;
-
 
 export const DashboardTitle = styled.h1`
   margin: 0 0 8px;
@@ -95,7 +93,6 @@ export const Description = styled.p`
   max-width: 720px;
 `;
 
-
 export const ScenarioCard = styled.section`
   background: #ffffff;
   border: 2px solid #111;
@@ -170,7 +167,6 @@ export const ButtonsRow = styled.div`
   }
 `;
 
-
 const baseButton = `
   height: 40px;
   padding: 0 16px;
@@ -220,7 +216,6 @@ export const SecondaryButton = styled.button`
   background: #fff;
 `;
 
-
 export const CardsRow = styled.div`
   margin-top: 18px;
 
@@ -228,7 +223,7 @@ export const CardsRow = styled.div`
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 
-  align-items: stretch; 
+  align-items: stretch;
   @media (max-width: 980px) {
     grid-template-columns: 1fr;
   }
@@ -240,8 +235,8 @@ export const MiniCard = styled.div`
   border-radius: 14px;
   padding: 16px;
 
-  display: flex;          
-  flex-direction: column; 
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 
   height: 100%;
@@ -269,7 +264,7 @@ export const MiniCardButton = styled.button`
   font-weight: 900;
   background: #ffb400;
 
-  margin-top: auto; 
+  margin-top: auto;
 `;
 
 export const MiniCardButtonDark = styled.button`
@@ -279,11 +274,9 @@ export const MiniCardButtonDark = styled.button`
   background: #2f2f2f;
   color: #fff;
 
-  margin-top: auto; 
+  margin-top: auto;
 
   &:hover {
     filter: brightness(1.03);
   }
 `;
-
-
