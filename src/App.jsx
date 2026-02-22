@@ -8,6 +8,11 @@ import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Budget from './pages/Budget/Budget'
 import ReadBill from './pages/Budget/topics/ReadBill/ReadBill'
+import ReadIndicators from "./pages/Budget/topics/ReadIndicators/ReadIndicators";
+import FinalSum from "./pages/Budget/topics/FinalSum/FinalSum";
+import WhyDifferentSums from "./pages/Budget/topics/WhyDifferentSums/WhyDifferentSums";
+import ForecastCalculator from "./pages/Budget/topics/ForecastCalculator/ForecastCalculator";
+import MonthlyBudgeting from "./pages/Budget/topics/MonthlyBudgeting/MonthlyBudgeting";
 import EnergySaving from './pages/Energy/EnergySaving'
 import Lighting from './pages/Energy/Lighting'
 import Payments from './pages/Payments/Payments'
@@ -39,6 +44,11 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/budget" element={<Budget />} />
           <Route path="/budget/read-bill" element={<ReadBill />} />
+          <Route path="/budget/read-indicators" element={<ReadIndicators />}/>
+          <Route path="/budget/final-sum" element={<FinalSum />} />
+          <Route path="/budget/why-different-sums" element={<WhyDifferentSums />} />
+          <Route path="/budget/forecast-calculator" element={<ForecastCalculator />} />
+          <Route path="/budget/monthly-budgeting" element={<MonthlyBudgeting />} />
           <Route path="/energy" element={<EnergySaving />} />
           <Route path="/energy/lighting" element={<Lighting />} />
           <Route path="/payments" element={<Payments />} />

@@ -35,15 +35,18 @@ import {
   MiniCardButtonDark,
 } from "./DashboardPage.styled";
 
+import { useAuth } from "../../context/AuthContext.jsx";
+
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const prev = getComputedStyle(document.documentElement)
       .getPropertyValue("--app-bg")
       ?.trim();
 
-    document.documentElement.style.setProperty("--app-bg", "#F4A629"); 
+    document.documentElement.style.setProperty("--app-bg", "#F4A629");
 
     return () => {
       document.documentElement.style.setProperty("--app-bg", prev || "#F4F3EE");
@@ -59,7 +62,7 @@ export default function Dashboard() {
   return (
     <DashboardPage>
       <DashboardContainer>
-        <DashboardTitle>Welcome back, UserName !</DashboardTitle>
+        <DashboardTitle>Welcome back, {user?.name || "User"} !</DashboardTitle>
 
         <ProgressLabel as="p">
           <FaFire aria-hidden="true" focusable="false" />
@@ -76,6 +79,7 @@ export default function Dashboard() {
           >
             <ProgressFill style={{ width: `${progress}%` }} />
           </ProgressBar>
+
           <ProgressPercent aria-label={`Поточний прогрес ${progress}%`}>
             {progress}%
           </ProgressPercent>
@@ -162,6 +166,3 @@ export default function Dashboard() {
     </DashboardPage>
   );
 }
-
-
-
