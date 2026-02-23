@@ -538,8 +538,6 @@ export const BackButton = styled.button`
   color: var(--color-text);
 `;
 
-/* REMOTE BODY */
-
 export const RemoteBody = styled.div`
   width: 280px;
   margin: 0 auto;
