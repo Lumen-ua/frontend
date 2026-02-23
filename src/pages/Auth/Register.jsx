@@ -28,11 +28,10 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
 
   function isValidEmail(value) {
-    // дуже проста перевірка: достатньо для UX, не замінює бек-валидацію
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   }
 
-  async function onSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (loading) return;
     setError("");
@@ -40,39 +39,17 @@ const Register = () => {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
 
-    // базові перевірки (UX)
     if (!trimmedName) return setError("Введіть ім’я");
     if (!trimmedEmail) return setError("Введіть пошту");
     if (!isValidEmail(trimmedEmail)) return setError("Невірний формат пошти");
     if (password.length < 8) return setError("Пароль має бути мінімум 8 символів");
     if (password !== confirm) return setError("Паролі не співпадають");
 
-    // ✅ ДІАГНОСТИКА (залиш на час дебагу)
-    console.log("REGISTER submit:", {
-      name: trimmedName,
-      email: trimmedEmail,
-      passwordLen: password.length,
-    });
-
     try {
       setLoading(true);
-
-      const res = await register({
-        email: trimmedEmail,
-        name: trimmedName,
-        password,
-      });
-
-      console.log("REGISTER success response:", res);
-
-      // Якщо register() спрацював — токен вже має бути в localStorage
-      console.log("LOCALSTORAGE lumen_token:", localStorage.getItem("lumen_token"));
-
+      await register({ name: trimmedName, email: trimmedEmail, password });
       navigate("/", { replace: true });
     } catch (err) {
-      console.error("REGISTER error:", err);
-
-      // err.message має містити текст з бекенду (після фіксу http.js)
       setError(err?.message || "Помилка реєстрації");
     } finally {
       setLoading(false);
@@ -82,10 +59,11 @@ const Register = () => {
   return (
     <AuthPageWrapper>
       <AuthLogoImage src={lumenLogo} alt="LUMEN Logo" />
+
       <AuthFormContainer>
         <AuthTitle>Зареєструватись</AuthTitle>
 
-        <AuthForm onSubmit={onSubmit}>
+        <AuthForm onSubmit={handleSubmit}>
           <AuthFieldGroup>
             <AuthLabel>Ім’я</AuthLabel>
             <AuthInput
@@ -138,6 +116,24 @@ const Register = () => {
           <AuthSubmitButton type="submit" disabled={loading}>
             {loading ? "Зачекайте..." : "Зареєструватись"}
           </AuthSubmitButton>
+
+          {/* ✅ НОВЕ: назад на логін */}
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            style={{
+              marginTop: 12,
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+              background: "transparent",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            Вже є акаунт? Увійти
+          </button>
         </AuthForm>
       </AuthFormContainer>
     </AuthPageWrapper>
