@@ -1,82 +1,109 @@
-import React, { useState } from 'react';
-import lumenLogo from '../../assets/images/lumen-logo.webp';
-import { 
-  AuthPageWrapper, 
-  AuthLogoImage, 
-  AuthFormContainer, 
-  AuthTitle, 
-  AuthForm, 
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import lumenLogo from "../../assets/images/lumen-logo.webp";
+import { useAuth } from "../../context/AuthContext.jsx";
+
+import {
+  AuthPageWrapper,
+  AuthLogoImage,
+  AuthFormContainer,
+  AuthTitle,
+  AuthForm,
   AuthFieldGroup,
-  AuthLabel, 
-  AuthInput, 
-  AuthSubmitButton 
-} from './Auth.styled';
+  AuthLabel,
+  AuthInput,
+  AuthSubmitButton,
+} from "./Auth.styled";
 
 const Login = () => {
-  // 1. Додаємо стани для пошти та пароля
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
+
+    if (!email.trim()) return setError("Введіть пошту");
+    if (!password) return setError("Введіть пароль");
 
     try {
-      // 2. Робимо запит на логін
-      const response = await fetch('http://localhost:5000/api/Auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, password: password })
-      });
-
-      if (response.ok) {
-        // 3. Якщо успішно — отримуємо дані (включно з токеном)
-        const data = await response.json();
-        
-        // 4. НАЙГОЛОВНІШЕ: зберігаємо токен у локальне сховище браузера!
-        localStorage.setItem('token', data.token); 
-        
-        alert("Вхід успішний!");
-        
-        // Пізніше ми тут додамо код, який перекине користувача на сторінку профілю
-        // window.location.href = '/profile';
-      } else {
-        const errorData = await response.json();
-        alert(`Помилка входу: ${errorData.message || "Невірний логін або пароль"}`);
-      }
-    } catch (error) {
-      console.error("Помилка з'єднання:", error);
-      alert("Немає зв'язку з сервером. Перевірте, чи запущений бекенд.");
+      setLoading(true);
+      await login({ email: email.trim(), password });
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Невірна пошта або пароль");
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
   return (
     <AuthPageWrapper>
       <AuthLogoImage src={lumenLogo} alt="LUMEN Logo" />
+
       <AuthFormContainer>
         <AuthTitle>Увійти в обліковий запис</AuthTitle>
-        {/* Вішаємо обробник на форму */}
+
         <AuthForm onSubmit={handleSubmit}>
           <AuthFieldGroup>
             <AuthLabel>Пошта</AuthLabel>
-            <AuthInput 
-              type="email" 
-              placeholder="Enter your email" 
-              required 
+            <AuthInput
+              type="email"
+              placeholder="Enter your email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </AuthFieldGroup>
+
           <AuthFieldGroup>
             <AuthLabel>Пароль</AuthLabel>
-            <AuthInput 
-              type="password" 
-              placeholder="Enter your password" 
-              required 
+            <AuthInput
+              type="password"
+              placeholder="Enter your password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </AuthFieldGroup>
-          <AuthSubmitButton type="submit">Увійти</AuthSubmitButton>
+
+          {error && (
+            <div style={{ marginTop: 10, color: "crimson", fontSize: 14 }}>
+              {error}
+            </div>
+          )}
+
+          <AuthSubmitButton type="submit" disabled={loading}>
+            {loading ? "Зачекайте..." : "Увійти"}
+          </AuthSubmitButton>
+
+          {/* ✅ НОВЕ: кнопка/лінк на реєстрацію */}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            style={{
+              marginTop: 12,
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+              background: "transparent",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            Зареєструватись
+          </button>
+
+          <div style={{ marginTop: 12, fontSize: 13, opacity: 0.75, textAlign: "center" }}>
+            Немає акаунта? Натисни “Зареєструватись”
+          </div>
         </AuthForm>
       </AuthFormContainer>
     </AuthPageWrapper>
