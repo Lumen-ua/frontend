@@ -29,7 +29,7 @@ import {
 } from "recharts";
 
 import { useAuth } from "../../../context/AuthContext";
-import { paymentsApi, dashboardApi } from "../../../api/payments";
+import { paymentsApi, dashboardApi, templatesApi } from "../../../api/payments";
 
 const REFUND_WINDOW = 30;
 
@@ -103,7 +103,7 @@ const Payments = ({ onBack }) => {
     async function load() {
       try {
             const historyData = await paymentsApi.getHistory(token);
-
+            
             const paymentsArray = Array.isArray(historyData)
             ? historyData
             : historyData?.payments || [];
@@ -127,6 +127,9 @@ const Payments = ({ onBack }) => {
         });
 
         setHistory(mapped);
+
+        const templatesData = await templatesApi.get(token);
+        setTemplates(templatesData);
 
         const dashboard = await dashboardApi.get(token);
 
@@ -152,6 +155,7 @@ const Payments = ({ onBack }) => {
           }
 
           if (p.status === "processing" && p.secondsLeft === 0) {
+            setApprovedCount(count => count + 1);
             return { ...p, status: "approved" };
           }
 
@@ -162,17 +166,6 @@ const Payments = ({ onBack }) => {
 
     return () => clearInterval(interval);
   }, []);
-
-  // ===== LEVEL AUTO UPDATE =====
-  useEffect(() => {
-    const approved = history.filter(p => p.status === "approved").length;
-    setApprovedCount(approved);
-
-    if (approved >= 10) setUserLevel("Легенда ЖКГ 🔥");
-    else if (approved >= 5) setUserLevel("Комунальний майстер 💪");
-    else if (approved >= 1) setUserLevel("Новачок 🟢");
-    else setUserLevel("Без досвіду");
-  }, [history]);
 
   // ===== METER CALC =====
   useEffect(() => {
@@ -319,23 +312,29 @@ const Payments = ({ onBack }) => {
     if (s === "redirected") return "Перенаправлено";
   };
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!templateName) {
       setError("Введіть назву шаблону");
       return;
     }
 
-    const newTemplate = {
-      id: "t" + Date.now(),
-      name: templateName,
-      service,
-      type: payType,
-      value: payType === "address" ? address : identifier
-    };
+    try {
+      const tpl = await templatesApi.create(token, {
+        name: templateName,
+        service,
+        type: payType,
+        value:
+          payType === "address"
+            ? JSON.stringify(address)
+            : identifier
+      });
 
-    setTemplates(prev => [...prev, newTemplate]);
-    setTemplateName("");
-    setSuccess("Шаблон збережено");
+      setTemplates(prev => [...prev, tpl]);
+      setTemplateName("");
+      setSuccess("Шаблон збережено");
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   const applyTemplate = (tpl) => {
@@ -343,7 +342,7 @@ const Payments = ({ onBack }) => {
     setPayType(tpl.type);
 
     if (tpl.type === "address") {
-      setAddress(tpl.value);
+      setAddress(JSON.parse(tpl.value));
       setIdentifier("");
     } else {
       setIdentifier(tpl.value);
@@ -352,8 +351,13 @@ const Payments = ({ onBack }) => {
     setTab("pay");
   };
 
-  const deleteTemplate = (id) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
+  const deleteTemplate = async (id) => {
+    try {
+      await templatesApi.delete(token, id);
+      setTemplates(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   return (
