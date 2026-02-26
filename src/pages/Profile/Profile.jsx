@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiUser,
   FiMenu,
@@ -88,8 +89,10 @@ function getCompletedAchievementsFromLS() {
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("main");
+  const navigate = useNavigate();
 
-  const { user, token, updateProfile, uploadAvatar } = useAuth();
+  // Використовуємо звичний token
+  const { user, token, updateProfile, uploadAvatar, logout } = useAuth();
 
   const goalRecommendations = useMemo(
     () => ({
@@ -112,10 +115,19 @@ export default function Profile() {
     []
   );
 
-  const [meta, setMeta] = useState({
-    level: "Новачок",
-    progress: 25,
-    currentGoal: "Фінансова грамотність",
+  const calculateLevel = (progress) => {
+    if (progress < 30) return "Новачок";
+    if (progress < 70) return "Впевнений користувач";
+    return "Майстер Побуту";
+  };
+
+  const [meta, setMeta] = useState(() => {
+    const savedGoal = localStorage.getItem("lumen_current_goal") || "Фінансова грамотність";
+    return {
+      level: "Новачок",
+      progress: 0,
+      currentGoal: savedGoal,
+    };
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -216,7 +228,12 @@ export default function Profile() {
 
   useEffect(() => {
     const p = Math.round(achievementsPercent);
-    setMeta((prev) => (prev.progress === p ? prev : { ...prev, progress: p }));
+    const newLevel = calculateLevel(p);
+    
+    setMeta((prev) => {
+      if (prev.progress === p && prev.level === newLevel) return prev;
+      return { ...prev, progress: p, level: newLevel };
+    });
   }, [achievementsPercent]);
 
   const avatarSrc = resolveAvatarSrc(user?.avatarUrl);
@@ -284,8 +301,14 @@ export default function Profile() {
   };
 
   const handleChangeGoal = (newGoal) => {
+    localStorage.setItem("lumen_current_goal", newGoal);
     setMeta((prev) => ({ ...prev, currentGoal: newGoal }));
     goBack();
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   return (
@@ -415,7 +438,7 @@ export default function Profile() {
               Всі досягнення
             </CardTitle>
 
-            <ul style={{ listStyle: "none", padding: 0 }}>
+            <ul style={{ listStyle: "none", padding: "0" }}>
               {achievementsData.map((item, index) => (
                 <AchievementRow key={`${item.key}-${index}`}>
                   <div style={{ fontSize: "24px", color: "#111" }}>
@@ -574,6 +597,19 @@ export default function Profile() {
               <ActionButton onClick={handleSaveProfile} style={{ marginTop: "16px" }}>
                 Зберегти зміни
               </ActionButton>
+
+              <ActionButton 
+                onClick={handleLogout} 
+                style={{ 
+                  marginTop: "16px", 
+                  backgroundColor: "transparent", 
+                  border: "2px solid crimson", 
+                  color: "crimson" 
+                }}
+              >
+                Вийти з акаунту
+              </ActionButton>
+
             </FormColumn>
           </ContentCard>
         </>
