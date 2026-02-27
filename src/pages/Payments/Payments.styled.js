@@ -1,5 +1,11 @@
 import styled from "styled-components";
 
+const breakpoints = {
+  tablet: "1024px",
+  mobile: "768px",
+  small: "480px",
+};
+
 export const ControlPanel = styled.div`
   border: 2px solid #ccc;
   border-radius: 12px;
@@ -20,6 +26,8 @@ export const ButtonRow = styled.div`
 `;
 
 export const PanelButton = styled.button`
+  flex: 1; 
+  min-width: 100px;
   background: #ff9800;
   color: white;
   border: none;
@@ -30,7 +38,6 @@ export const PanelButton = styled.button`
   transition: background 0.2s;
   &:hover { background: #e65100; }
 `;
-
 
 export const BottomNavigator = styled.div`
   margin-top: 40px;
@@ -55,8 +62,9 @@ export const ChainRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: wrap; 
+  gap: 10px;
+  padding: 10px 0;
 `;
 
 export const ChainItem = styled.div`
@@ -101,8 +109,11 @@ export const ChainLine = styled.div`
   height: 2px;
   background: #ddd;
   margin: 0 4px;
-`;
 
+  @media (max-width: 480px) {
+    display: none; 
+  }
+`;
 
 export const HighlightSection = styled.div`
   background: #fff3e0;
@@ -161,16 +172,31 @@ export const ScreenBox = styled.div`
   font-family: monospace;
   font-size: 13px;
 `;
+
 export const ModeGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  margin-bottom: 24px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: ${breakpoints.small}) {
+    grid-template-columns: 1fr;
+  }
 `;
+
 export const RefundMap = styled.div`
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
   margin: 24px 0;
+
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 `;
 
 export const RefundStep = styled.div`
@@ -201,6 +227,11 @@ export const StatusBar = styled.div`
   display: flex;
   gap: 12px;
   margin: 20px 0;
+
+  @media (max-width: ${breakpoints.mobile}) {
+    flex-direction: column; 
+    gap: 8px;
+  }
 `;
 
 export const Status = styled.div`
@@ -242,9 +273,10 @@ export const ModeCard = styled.div`
     margin-bottom: 6px;
   }
 `;
+
 export const Path = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin: 24px 0;
 `;
@@ -280,11 +312,19 @@ export const ModeDesc = styled.div`
     margin-bottom: 4px;
   }
 `;
+
 export const MeterGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
+  
+  @media (max-width: ${breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: ${breakpoints.small}) {
+    grid-template-columns: 1fr;
 `;
 
 export const MeterIcon = styled.div`
@@ -296,11 +336,20 @@ export const MeterTitle = styled.div`
   font-weight: 700;
   color: #e65100;
 `;
+
 export const InfoGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 24px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: ${breakpoints.small}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const InfoCard = styled.div`
@@ -326,21 +375,49 @@ export const InfoDesc = styled.div`
   color: #555;
 `;
 
+export const MatrixWrapper = styled.div`
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid #ffe0b2;
+  margin: 24px 0;
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #ffcc80;
+    border-radius: 10px;
+  }
+`;
+
 export const Matrix = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: 24px 0;
-  border-radius: 14px;
-  overflow: hidden;
+  grid-template-columns: repeat(3, 1fr); 
+
+  min-width: 500px; 
+  
+  @media (max-width: 480px) {
+    min-width: 600px; 
+  }
 `;
 
 export const MatrixCell = styled.div`
   padding: 14px;
   background: ${p => p.header ? "#fff3e0" : "white"};
-  border: 1px solid #ffe0b2;
+  border-bottom: 1px solid #ffe0b2;
+  border-right: 1px solid #ffe0b2;
+  
   font-weight: ${p => p.header ? "700" : "400"};
-`;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
+  &:nth-child(3n) {
+    border-right: none;
+  }
+`;
 
 export const TipSection = styled.div`
   background: #f1f8e9;
@@ -389,11 +466,9 @@ export const GroupTitle = styled.div`
 export const PageTitle = styled.div`
   margin: 16px 0 24px;
   padding-bottom: 12px;
-
-  font-size: 22px;
+  font-size: clamp(18px, 5vw, 22px);
   font-weight: 700;
   color: #e65100;
-
   border-bottom: 3px solid #ffe0b2;
 `;
 
@@ -412,9 +487,10 @@ export const WhenSection = styled.div`
 export const Page = styled.div`
   max-width: 1100px;
   margin: 0 auto;
-  padding: var(--container-padding);
+  padding: 20px; 
+  width: 100%;
+  box-sizing: border-box;
 `;
-
 
 export const Header = styled.div`
   background: var(--color-accent);
@@ -422,6 +498,13 @@ export const Header = styled.div`
   padding: 32px;
   display: flex;
   gap: 20px;
+  align-items: center;
+
+  @media (max-width: ${breakpoints.mobile}) {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
 `;
 
 export const HeaderIcon = styled.div`
@@ -431,18 +514,29 @@ export const HeaderIcon = styled.div`
   padding: 10px;
 `;
 
-
 export const Grid = styled.div`
   margin-top: 40px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr); 
   gap: 24px;
+
+  @media (max-width: ${breakpoints.tablet}) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: ${breakpoints.small}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export const GridTwo = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+
+  @media (max-width: ${breakpoints.mobile}) {
+    grid-template-columns: 1fr; 
+  }
 `;
 
 export const Card = styled.button`
@@ -485,8 +579,6 @@ export const BackButton = styled.button`
   font-weight: 600;
   color: var(--color-text);
 `;
-
-/* REMOTE BODY */
 
 export const RemoteBody = styled.div`
   width: 280px;
@@ -601,17 +693,29 @@ export const RemoteButton = styled.button`
 
 export const HomeLayout = styled.div`
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   justify-content: space-between;
   gap: 40px;
+
+  @media (max-width: 992px) {
+    flex-direction: column; 
+    align-items: center;
+  }
 `;
 
 export const HomeMain = styled.div`
   flex: 1;
+  width: 100%;
 `;
 
 export const HomeRemote = styled.div`
-  width: 280px;   /* менший контейнер */
-  display: flex;
-  justify-content: flex-end;
+  width: 280px; 
+  
+  @media (max-width: 992px) {
+    width: 100%;
+    max-width: 280px; 
+    justify-content: center;
+    margin-top: 20px;
+  }
 `;
