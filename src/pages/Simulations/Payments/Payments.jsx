@@ -148,24 +148,42 @@ const Payments = ({ onBack }) => {
   // GLOBAL TIMER 
   useEffect(() => {
     const interval = setInterval(() => {
-      setHistory(prev =>
-        prev.map(p => {
+      setHistory(prev => {
+        let needsRefresh = false;
+
+        const updatedHistory = prev.map(p => {
           if (p.status === "processing" && p.secondsLeft > 0) {
             return { ...p, secondsLeft: p.secondsLeft - 1 };
           }
-
           if (p.status === "processing" && p.secondsLeft === 0) {
-            setApprovedCount(count => count + 1);
+            needsRefresh = true; 
             return { ...p, status: "approved" };
           }
 
           return p;
-        })
-      );
+        });
+
+        if (needsRefresh) {
+          refreshDashboard();
+        }
+
+        return updatedHistory;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [token]); 
+
+  async function refreshDashboard() {
+    try {
+      const dashboard = await dashboardApi.get(token);
+      setBalance(dashboard.balance);
+      setApprovedCount(dashboard.approvedCount);
+      setUserLevel(dashboard.level);
+    } catch (e) {
+      console.error("Sync error", e);
+    }
+  }
 
   // METER CALC 
   useEffect(() => {
