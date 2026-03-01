@@ -47,19 +47,38 @@ import {
   FormColumn,
 } from "./Profile.styled";
 
-import { useAuth } from "../../context/AuthContext.jsx"; 
-import { resolveAvatarSrc } from "../../utils/avatar";  
-import { budgetContentApi } from "../../api/budgetContent"; 
+import { useAuth } from "../../context/AuthContext.jsx";
+import { resolveAvatarSrc } from "../../utils/avatar";
+import { budgetContentApi } from "../../api/budgetContent";
+import { legalContentApi } from "../../api/legalContent";
 import { dashboardApi } from "../../api/payments";
 
-const LS_PROGRESS_KEY = "lumen.progress.budget";
+// ✅ base localStorage keys (будуть scoped на юзера)
+const LS_BUDGET_PROGRESS_KEY = "lumen.progress.budget";
+const LS_LEGAL_PROGRESS_KEY = "lumen.progress.legal";
+const LS_ENERGY_PROGRESS_KEY = "lumen.progress.energy";
+const LS_ACHIEVEMENTS_KEY = "lumen.achievements";
 
-const SIM_TO_ACHIEVEMENT_KEY = {
+// ✅ Energy achievement
+const ENERGY_SECTION_ACHIEVEMENT_ID = "energy_energy_saving";
+const ENERGY_SECTION_ACH_TITLE = "Енергоефективність: усе пройдено";
+const ENERGY_TOPICS = ["lighting", "heating", "appliances", "water", "smart-home"];
+
+// ✅ мапи "симуляція -> ключ досягнення"
+const BUDGET_SIM_TO_ACHIEVEMENT_KEY = {
   readBillSim: "budget_read_bill",
   readIndicatorsSim: "budget_calculate_indicators",
   billDetectiveSim: "budget_why_different_sums",
   whatIfSim: "budget_forecast_calculator",
 };
+
+const LEGAL_SIM_TO_ACHIEVEMENT_KEY = {
+  landlordRightsSim: "legal_landlord_rights",
+  debtsSim: "legal_debts_penalty",
+  repairsGameSim: "legal_repairs_game",
+};
+
+/* ---------------- helpers ---------------- */
 
 function safeParseJson(str, fallback) {
   try {
@@ -70,17 +89,65 @@ function safeParseJson(str, fallback) {
   }
 }
 
-function readBudgetProgressFromLS() {
-  const raw = localStorage.getItem(LS_PROGRESS_KEY);
+function scopedKey(base, user) {
+  const suffix = user?.id ?? user?.email ?? "guest";
+  return `${base}:${suffix}`;
+}
+
+function readProgressFromLS(lsKey) {
+  const raw = localStorage.getItem(lsKey);
   return safeParseJson(raw, { sims: {} });
 }
 
-function getCompletedAchievementsFromLS() {
-  const data = readBudgetProgressFromLS();
+function readEnergyProgressFromLS(lsKey) {
+  const raw = localStorage.getItem(lsKey);
+  return safeParseJson(raw, { topics: {} });
+}
+
+function isEnergySectionCompleted(energyLsKey) {
+  const data = readEnergyProgressFromLS(energyLsKey);
+  const topics = data?.topics || {};
+  return ENERGY_TOPICS.every((id) => Boolean(topics?.[id]?.visited));
+}
+
+/**
+ * Підтримує формати achievements:
+ * 1) [{id,title,done}, ...]
+ * 2) { items: { key: {done:true}, ... } }
+ * 3) { key: {done:true}, ... }
+ */
+function readAchievementsFromLS(achLsKey) {
+  const raw = localStorage.getItem(achLsKey);
+  const parsed = safeParseJson(raw, null);
+
+  // Array format
+  if (Array.isArray(parsed)) {
+    return new Set(
+      parsed
+        .filter((a) => Boolean(a?.done))
+        .map((a) => a?.id)
+        .filter(Boolean)
+    );
+  }
+
+  // Object format
+  if (parsed && typeof parsed === "object") {
+    const items = parsed.items && typeof parsed.items === "object" ? parsed.items : parsed;
+
+    return new Set(
+      Object.keys(items || {}).filter((k) => Boolean(items?.[k]?.done))
+    );
+  }
+
+  return new Set();
+}
+
+function getCompletedFromLS(lsKey, map) {
+  const data = readProgressFromLS(lsKey);
   const sims = data?.sims || {};
   const done = new Set();
 
-  Object.entries(SIM_TO_ACHIEVEMENT_KEY).forEach(([simId, achievementKey]) => {
+  Object.entries(map).forEach(([simId, achievementKey]) => {
     const completed = Boolean(sims?.[simId]?.completed);
     if (completed) done.add(achievementKey);
   });
@@ -88,14 +155,24 @@ function getCompletedAchievementsFromLS() {
   return done;
 }
 
+/* ---------------------------------------- */
+
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("main");
   const navigate = useNavigate();
 
-  // Використовуємо звичний token
   const { user, token, updateProfile, uploadAvatar, logout } = useAuth();
 
-  const [dashboardData, setDashboardData] = useState({ approvedCount: 0, level: "" });
+  // ✅ scoped keys під конкретного юзера
+  const budgetLsKey = useMemo(() => scopedKey(LS_BUDGET_PROGRESS_KEY, user), [user]);
+  const legalLsKey = useMemo(() => scopedKey(LS_LEGAL_PROGRESS_KEY, user), [user]);
+  const energyLsKey = useMemo(() => scopedKey(LS_ENERGY_PROGRESS_KEY, user), [user]);
+  const achLsKey = useMemo(() => scopedKey(LS_ACHIEVEMENTS_KEY, user), [user]);
+
+  const [dashboardData, setDashboardData] = useState({
+    approvedCount: 0,
+    level: "",
+  });
 
   const goalRecommendations = useMemo(
     () => ({
@@ -125,7 +202,8 @@ export default function Profile() {
   };
 
   const [meta, setMeta] = useState(() => {
-    const savedGoal = localStorage.getItem("lumen_current_goal") || "Фінансова грамотність";
+    const savedGoal =
+      localStorage.getItem("lumen_current_goal") || "Фінансова грамотність";
     return {
       level: "Новачок",
       progress: 0,
@@ -144,7 +222,9 @@ export default function Profile() {
     setEditFormData((prev) => ({ ...prev, name: user?.name || "" }));
   }, [user]);
 
+  // ✅ бек: budget + legal completed keys
   const [completedBudgetSims, setCompletedBudgetSims] = useState([]);
+  const [completedLegalSims, setCompletedLegalSims] = useState([]);
 
   useEffect(() => {
     let alive = true;
@@ -152,7 +232,6 @@ export default function Profile() {
     async function loadBudgetAchievements() {
       try {
         if (!token) return;
-
         const res = await budgetContentApi.get(token);
 
         const raw =
@@ -172,15 +251,41 @@ export default function Profile() {
       alive = false;
     };
   }, [token]);
-  
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadLegalAchievements() {
+      try {
+        if (!token) return;
+        const res = await legalContentApi.get(token);
+
+        const raw =
+          res?.completedSimulationsJson ??
+          res?.CompletedSimulationsJson ??
+          "[]";
+
+        const parsed = JSON.parse(raw);
+        if (alive) setCompletedLegalSims(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        if (alive) setCompletedLegalSims([]);
+      }
+    }
+
+    loadLegalAchievements();
+    return () => {
+      alive = false;
+    };
+  }, [token]);
+
   useEffect(() => {
     async function loadDashboardStats() {
       try {
         if (!token) return;
-        const res = await dashboardApi.get(token); 
+        const res = await dashboardApi.get(token);
         setDashboardData({
           approvedCount: res.approvedCount || 0,
-          level: res.level || ""
+          level: res.level || "",
         });
       } catch (err) {
         console.error("Помилка завантаження статистики", err);
@@ -189,36 +294,64 @@ export default function Profile() {
     loadDashboardStats();
   }, [token]);
 
-  const [completedFromLS, setCompletedFromLS] = useState(() =>
-    Array.from(getCompletedAchievementsFromLS())
-  );
+  // ✅ localStorage: бюджет + легал + achievements + energy (scoped)
+  const [completedFromLS, setCompletedFromLS] = useState(() => {
+    const s = new Set();
+
+    getCompletedFromLS(budgetLsKey, BUDGET_SIM_TO_ACHIEVEMENT_KEY).forEach((k) => s.add(k));
+    getCompletedFromLS(legalLsKey, LEGAL_SIM_TO_ACHIEVEMENT_KEY).forEach((k) => s.add(k));
+
+    // ✅ achievements + енерго розділ
+    readAchievementsFromLS(achLsKey).forEach((k) => s.add(k));
+    if (isEnergySectionCompleted(energyLsKey)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
+
+    return Array.from(s);
+  });
 
   useEffect(() => {
     const syncFromLS = () => {
-      const setDone = getCompletedAchievementsFromLS();
-      setCompletedFromLS(Array.from(setDone));
+      const s = new Set();
+
+      getCompletedFromLS(budgetLsKey, BUDGET_SIM_TO_ACHIEVEMENT_KEY).forEach((k) => s.add(k));
+      getCompletedFromLS(legalLsKey, LEGAL_SIM_TO_ACHIEVEMENT_KEY).forEach((k) => s.add(k));
+
+      readAchievementsFromLS(achLsKey).forEach((k) => s.add(k));
+      if (isEnergySectionCompleted(energyLsKey)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
+
+      setCompletedFromLS(Array.from(s));
     };
 
     const onCustom = () => syncFromLS();
     const onStorage = (e) => {
-      if (e.key === LS_PROGRESS_KEY) syncFromLS();
+      if (
+        e.key === budgetLsKey ||
+        e.key === legalLsKey ||
+        e.key === energyLsKey ||
+        e.key === achLsKey
+      ) {
+        syncFromLS();
+      }
     };
 
     window.addEventListener("lumen:progress-updated", onCustom);
+    window.addEventListener("lumen:achievements-updated", onCustom);
     window.addEventListener("storage", onStorage);
 
     return () => {
       window.removeEventListener("lumen:progress-updated", onCustom);
+      window.removeEventListener("lumen:achievements-updated", onCustom);
       window.removeEventListener("storage", onStorage);
     };
-  }, []);
+  }, [budgetLsKey, legalLsKey, energyLsKey, achLsKey]);
 
+  // ✅ unified completed set (бек + LS)
   const completedSet = useMemo(() => {
     const s = new Set();
     completedBudgetSims.forEach((k) => s.add(k));
+    completedLegalSims.forEach((k) => s.add(k));
     completedFromLS.forEach((k) => s.add(k));
     return s;
-  }, [completedBudgetSims, completedFromLS]);
+  }, [completedBudgetSims, completedLegalSims, completedFromLS]);
 
   const achievementsData = useMemo(
     () => [
@@ -226,14 +359,29 @@ export default function Profile() {
       { key: "easy_5", title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: false },
       { key: "mid_5", title: "Захисник Комфорту", desc: "Пройти 5 симуляцій середнього рівня", done: false },
 
+      // ✅ Budget
       { key: "budget_read_bill", title: "Як читати платіжку", desc: "Пройти симуляцію читання платіжки", done: completedSet.has("budget_read_bill") },
       { key: "budget_calculate_indicators", title: "Як рахуються показники", desc: "Пройти симуляцію розрахунку показників", done: completedSet.has("budget_calculate_indicators") },
       { key: "budget_why_different_sums", title: "Чому приходять різні суми", desc: "Пройти симуляцію пошуку причин різниці сум", done: completedSet.has("budget_why_different_sums") },
       { key: "budget_forecast_calculator", title: "Калькулятор прогнозу витрат", desc: "Пройти симуляцію прогнозування витрат", done: completedSet.has("budget_forecast_calculator") },
 
+      // ✅ Legal
+      { key: "legal_landlord_rights", title: "Права власника", desc: "Пройти тест (50%+ правильних)", done: completedSet.has("legal_landlord_rights") },
+      { key: "legal_debts_penalty", title: "Борги та пеня", desc: "Успішно пройти симуляцію (чесна відповідь)", done: completedSet.has("legal_debts_penalty") },
+      { key: "legal_repairs_game", title: "Хто це лагодить?", desc: "Пройти гру (50%+ правильних)", done: completedSet.has("legal_repairs_game") },
+
+      // ✅ EnergySaving
+      {
+        key: ENERGY_SECTION_ACHIEVEMENT_ID,
+        title: ENERGY_SECTION_ACH_TITLE,
+        desc: "Відвідати всі підрозділи енергоефективності",
+        done: completedSet.has(ENERGY_SECTION_ACHIEVEMENT_ID),
+      },
+
       { key: "tips_10", title: "Побутовий Філософ", desc: "Переглянути 10 порад", done: false },
       { key: "eco_all", title: "Еко-Гуру", desc: "Прочитати всі поради в розділі економії", done: false },
 
+      // ✅ Payments
       { key: "first_payment", title: "Перша сплата", desc: "Ви зробили свою першу оплату в системі", done: dashboardData.approvedCount >= 1 },
       { key: "payment_master", title: "Майстер платежів", desc: "5 успішних оплат", done: dashboardData.approvedCount >= 5 },
       { key: "level_pro", title: "Досвідчений користувач", desc: "Досягнуто рівня Легенда ЖКГ", done: dashboardData.approvedCount >= 10 },
@@ -252,7 +400,7 @@ export default function Profile() {
   useEffect(() => {
     const p = Math.round(achievementsPercent);
     const newLevel = calculateLevel(p);
-    
+
     setMeta((prev) => {
       if (prev.progress === p && prev.level === newLevel) return prev;
       return { ...prev, progress: p, level: newLevel };
@@ -293,12 +441,12 @@ export default function Profile() {
           alert("Для зміни пароля введіть поточний пароль.");
           return;
         }
-        if (!editFormData.newPassword) {
-          alert("Введіть новий пароль.");
+        if (!editFormData.newPassword || editFormData.newPassword.length < 6) {
+          alert("Новий пароль має бути щонайменше 6 символів.");
           return;
         }
         if (editFormData.newPassword !== editFormData.confirmPassword) {
-          alert("Новий пароль і підтвердження не співпадають.");
+          alert("Підтвердження пароля не збігається.");
           return;
         }
 
@@ -306,32 +454,40 @@ export default function Profile() {
         payload.newPassword = editFormData.newPassword;
       }
 
-      if (Object.keys(payload).length > 0) {
-        await updateProfile(payload);
+      if (Object.keys(payload).length === 0) {
+        alert("Немає змін для збереження.");
+        return;
       }
 
-      setEditFormData((prev) => ({
-        ...prev,
+      await updateProfile(payload);
+
+      setEditFormData((p) => ({
+        ...p,
         oldPassword: "",
         newPassword: "",
         confirmPassword: "",
       }));
 
-      goBack();
+      alert("Профіль оновлено!");
+      setActiveTab("main");
     } catch (err) {
       alert(err?.message || "Не вдалося зберегти зміни");
     }
   };
 
-  const handleChangeGoal = (newGoal) => {
-    localStorage.setItem("lumen_current_goal", newGoal);
-    setMeta((prev) => ({ ...prev, currentGoal: newGoal }));
-    goBack();
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch {
+      navigate("/login");
+    }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleChangeGoal = (goal) => {
+    localStorage.setItem("lumen_current_goal", goal);
+    setMeta((prev) => ({ ...prev, currentGoal: goal }));
+    setActiveTab("main");
   };
 
   return (
@@ -348,25 +504,12 @@ export default function Profile() {
 
               <UserDetails>
                 <UserNameRow>
-                  <UserName>{user?.name || "User"}</UserName>
-
-                  <EditButton
-                    aria-label="Редагувати"
-                    onClick={() => {
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        name: user?.name || "",
-                        oldPassword: "",
-                        newPassword: "",
-                        confirmPassword: "",
-                      }));
-                      setActiveTab("edit");
-                    }}
-                  >
-                    <FiEdit2 size={18} />
+                  {/* ✅ FIX #1: показуємо ім’я, а не email */}
+                  <UserName>{user?.name || user?.email || "User"}</UserName>
+                  <EditButton onClick={() => setActiveTab("edit")}>
+                    <FiEdit2 />
                   </EditButton>
                 </UserNameRow>
-
                 <UserLevel>Рівень: {meta.level}</UserLevel>
               </UserDetails>
             </UserInfo>
@@ -396,7 +539,13 @@ export default function Profile() {
                 <ProgressBarContainer>
                   <ProgressBarFill $percent={achievementsPercent} />
                 </ProgressBarContainer>
-                <div style={{ marginTop: "8px", fontSize: "14px", color: "#121212" }}>
+                <div
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "14px",
+                    color: "#121212",
+                  }}
+                >
                   {achievementsReceived} з {achievementsData.length} отримано
                 </div>
               </ProgressSection>
@@ -436,8 +585,21 @@ export default function Profile() {
                   </List>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: "200px" }}>
-                  <span style={{ marginBottom: "12px", fontWeight: "bold", color: "#121212" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    minWidth: "200px",
+                  }}
+                >
+                  <span
+                    style={{
+                      marginBottom: "12px",
+                      fontWeight: "bold",
+                      color: "#121212",
+                    }}
+                  >
                     Хочете змінити пріоритети?
                   </span>
                   <ActionButton onClick={() => setActiveTab("goals")}>
@@ -469,7 +631,13 @@ export default function Profile() {
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: "16px", fontWeight: "800", margin: "0 0 4px" }}>
+                    <h3
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: "800",
+                        margin: "0 0 4px",
+                      }}
+                    >
                       «{item.title}»
                     </h3>
                     <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
@@ -545,7 +713,13 @@ export default function Profile() {
             <FiArrowLeft /> Назад
           </BackButton>
 
-          <ContentCard style={{ alignItems: "center", minHeight: "auto", padding: "40px" }}>
+          <ContentCard
+            style={{
+              alignItems: "center",
+              minHeight: "auto",
+              padding: "40px",
+            }}
+          >
             <CardTitle style={{ fontSize: "28px", marginBottom: "32px" }}>
               Редагувати профіль
             </CardTitle>
@@ -562,7 +736,17 @@ export default function Profile() {
                   <HiddenFileInput
                     type="file"
                     accept="image/*"
-                    onChange={handleImageChange}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        await uploadAvatar(file);
+                      } catch (err) {
+                        alert(err?.message || "Не вдалося завантажити фото");
+                      } finally {
+                        e.target.value = "";
+                      }
+                    }}
                   />
                 </UploadButton>
               </AvatarUploadWrapper>
@@ -588,7 +772,10 @@ export default function Profile() {
                   placeholder="Введіть поточний пароль"
                   value={editFormData.oldPassword}
                   onChange={(e) =>
-                    setEditFormData((p) => ({ ...p, oldPassword: e.target.value }))
+                    setEditFormData((p) => ({
+                      ...p,
+                      oldPassword: e.target.value,
+                    }))
                   }
                 />
               </InputGroup>
@@ -600,7 +787,10 @@ export default function Profile() {
                   placeholder="Введіть новий пароль"
                   value={editFormData.newPassword}
                   onChange={(e) =>
-                    setEditFormData((p) => ({ ...p, newPassword: e.target.value }))
+                    setEditFormData((p) => ({
+                      ...p,
+                      newPassword: e.target.value,
+                    }))
                   }
                 />
               </InputGroup>
@@ -612,27 +802,39 @@ export default function Profile() {
                   placeholder="Повторіть пароль"
                   value={editFormData.confirmPassword}
                   onChange={(e) =>
-                    setEditFormData((p) => ({ ...p, confirmPassword: e.target.value }))
+                    setEditFormData((p) => ({
+                      ...p,
+                      confirmPassword: e.target.value,
+                    }))
                   }
                 />
               </InputGroup>
 
-              <ActionButton onClick={handleSaveProfile} style={{ marginTop: "16px" }}>
+              <ActionButton
+                onClick={handleSaveProfile}
+                style={{ marginTop: "16px" }}
+              >
                 Зберегти зміни
               </ActionButton>
 
-              <ActionButton 
-                onClick={handleLogout} 
-                style={{ 
-                  marginTop: "16px", 
-                  backgroundColor: "transparent", 
-                  border: "2px solid crimson", 
-                  color: "crimson" 
+              <ActionButton
+                onClick={async () => {
+                  try {
+                    await logout();
+                    navigate("/login");
+                  } catch {
+                    navigate("/login");
+                  }
+                }}
+                style={{
+                  marginTop: "16px",
+                  backgroundColor: "transparent",
+                  border: "2px solid crimson",
+                  color: "crimson",
                 }}
               >
                 Вийти з акаунту
               </ActionButton>
-
             </FormColumn>
           </ContentCard>
         </>
