@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowRight, FiFileText } from "react-icons/fi"; // Іконка документа
+import { FiArrowRight, FiFileText } from "react-icons/fi";
 
 import {
   LandlordWrapper,
@@ -18,7 +18,6 @@ import {
   BlockDescription,
   ActionButtonWrapper,
   QuizButton,
-  // Модальні стилі
   ModalOverlay,
   ModalContent,
   QuestionTitle,
@@ -27,16 +26,81 @@ import {
   ResultText
 } from './LandlordRights.styled';
 
+import { useAuth } from "../../context/AuthContext.jsx";
+import { legalContentApi } from "../../api/legalContent";
+
+const LS_LEGAL_PROGRESS_KEY = "lumen.progress.legal";
+const SIM_ID = "landlordRightsSim";
+const ACH_KEY = "legal_landlord_rights";
+
+function safeParseJson(str, fallback) {
+  try {
+    const v = JSON.parse(str);
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function markLegalSimVisitedInLS(simId) {
+  const raw = localStorage.getItem(LS_LEGAL_PROGRESS_KEY);
+  const data = safeParseJson(raw, { sims: {} });
+  const prev = data?.sims?.[simId] || {};
+
+  const next = {
+    ...data,
+    sims: {
+      ...(data.sims || {}),
+      [simId]: {
+        ...prev,
+        visited: true,
+        visitedAt: prev.visitedAt || new Date().toISOString(),
+      },
+    },
+  };
+
+  localStorage.setItem(LS_LEGAL_PROGRESS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("lumen:progress-updated"));
+}
+
+function markLegalSimCompletedInLS({ simId, score, total }) {
+  const raw = localStorage.getItem(LS_LEGAL_PROGRESS_KEY);
+  const data = safeParseJson(raw, { sims: {} });
+  const prev = data?.sims?.[simId] || {};
+
+  const next = {
+    ...data,
+    sims: {
+      ...(data.sims || {}),
+      [simId]: {
+        ...prev,
+        visited: true,
+        visitedAt: prev.visitedAt || new Date().toISOString(),
+        completed: true,
+        score,
+        total,
+        completedAt: prev.completedAt || new Date().toISOString(),
+      },
+    },
+  };
+
+  localStorage.setItem(LS_LEGAL_PROGRESS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("lumen:progress-updated"));
+}
+
 const LandlordRights = () => {
   const navigate = useNavigate();
-  
-  // --- СТАНИ ДЛЯ ТЕСТУ ---
-  const [showModal, setShowModal] = useState(false); // Чи відкрито вікно
-  const [currentQuestion, setCurrentQuestion] = useState(0); // Яке питання показуємо
-  const [score, setScore] = useState(0); // Рахунок
-  const [showResult, setShowResult] = useState(false); // Чи показувати фінал
+  const { token } = useAuth();
 
-  // --- ДАНІ ДЛЯ ТЕСТУ (4 питання) ---
+  const [showModal, setShowModal] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+
+  useEffect(() => {
+    markLegalSimVisitedInLS(SIM_ID);
+  }, []);
+
   const questions = [
     {
       question: "Яке найголовніше право власника?",
@@ -46,7 +110,7 @@ const LandlordRights = () => {
         "Змінювати замки без попередження",
         "Зберігати речі орендаря собі"
       ],
-      correct: 1 // Індекс правильної відповіді (починаючи з 0)
+      correct: 1
     },
     {
       question: "Для чого потрібен залог (депозит)?",
@@ -80,24 +144,35 @@ const LandlordRights = () => {
     }
   ];
 
-  // --- ЛОГІКА ТЕСТУ ---
   const handleAnswer = (index) => {
-    // Перевірка відповіді
     if (index === questions[currentQuestion].correct) {
-      setScore(score + 1);
+      setScore((s) => s + 1);
     }
 
     const nextQuestion = currentQuestion + 1;
     if (nextQuestion < questions.length) {
       setCurrentQuestion(nextQuestion);
     } else {
-      setShowResult(true); // Показати результат
+      setShowResult(true);
     }
   };
 
-  const closeTest = () => {
+  const closeTest = async () => {
+    const total = questions.length;
+    const passed = total > 0 ? (score / total) >= 0.5 : false;
+
+    if (passed) {
+      markLegalSimCompletedInLS({ simId: SIM_ID, score, total });
+
+      try {
+        if (token) {
+          await legalContentApi.complete(token, ACH_KEY);
+        }
+      } catch (_) {}
+    }
+
     setShowModal(false);
-    navigate('/legal'); // Після тесту повертаємо в меню
+    navigate('/legal');
   };
 
   return (
@@ -105,7 +180,7 @@ const LandlordRights = () => {
       <LandlordHeader>
         <HeaderTitle>Права власника</HeaderTitle>
         <ExitButton onClick={() => navigate('/legal')}>
-           Вихід <FiArrowRight />
+          Вихід <FiArrowRight />
         </ExitButton>
       </LandlordHeader>
 
@@ -119,9 +194,7 @@ const LandlordRights = () => {
           </SubText>
         </IntroSection>
 
-        {/* СІТКА З ПРАВАМИ */}
         <RightsGrid>
-          {/* Блок 1 */}
           <RightBlock>
             <FiFileText size={40} color="#E69500" style={{flexShrink: 0}} />
             <BlockContent>
@@ -132,7 +205,6 @@ const LandlordRights = () => {
             </BlockContent>
           </RightBlock>
 
-          {/* Блок 2 */}
           <RightBlock>
             <FiFileText size={40} color="#E69500" style={{flexShrink: 0}} />
             <BlockContent>
@@ -146,7 +218,6 @@ const LandlordRights = () => {
             </BlockContent>
           </RightBlock>
 
-          {/* Блок 3 */}
           <RightBlock>
             <FiFileText size={40} color="#E69500" style={{flexShrink: 0}} />
             <BlockContent>
@@ -157,7 +228,6 @@ const LandlordRights = () => {
             </BlockContent>
           </RightBlock>
 
-          {/* Блок 4 (Підсумок) */}
           <RightBlock>
             <FiFileText size={40} color="#E69500" style={{flexShrink: 0}} />
             <BlockContent>
@@ -177,12 +247,10 @@ const LandlordRights = () => {
 
       </LandlordMain>
 
-      {/* --- МОДАЛЬНЕ ВІКНО (POP-UP) --- */}
       {showModal && (
         <ModalOverlay>
           <ModalContent>
             {!showResult ? (
-              // Показуємо питання
               <>
                 <div style={{marginBottom: '10px', color: '#888', fontSize: '14px'}}>
                    Питання {currentQuestion + 1} з {questions.length}
@@ -197,7 +265,6 @@ const LandlordRights = () => {
                 </OptionsList>
               </>
             ) : (
-              // Показуємо результат
               <ResultText>
                 <h3>Тест завершено!</h3>
                 <p>Твій результат: <b>{score}</b> з {questions.length} правильних.</p>
@@ -206,8 +273,7 @@ const LandlordRights = () => {
             )}
           </ModalContent>
         </ModalOverlay>
-      )}
-
+      )}      
     </LandlordWrapper>
   );
 };
