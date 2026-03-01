@@ -39,6 +39,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { budgetContentApi } from "../../api/budgetContent";
 import { legalContentApi } from "../../api/legalContent";
 import { dashboardApi } from "../../api/payments";
+import { repairsApi } from "../../api/repairsApi";
 
 /* -------------------- Progress helpers (як у профілі) -------------------- */
 
@@ -77,25 +78,22 @@ function scopedKey(base, user) {
   return `${base}:${suffix}`;
 }
 
-function readProgressFromLS(key) {
-  const raw = localStorage.getItem(key);
-  return safeParseJson(raw, { sims: {} });
+/**
+ * ✅ читає з scoped ключа, але якщо там порожньо — fallback на legacy ключ
+ * щоб прогрес не "розходився" через різні записи в LS.
+ */
+function readFromLSWithFallback(scopedLsKey, legacyLsKey, fallbackValue) {
+  const scopedRaw = localStorage.getItem(scopedLsKey);
+  if (scopedRaw) return safeParseJson(scopedRaw, fallbackValue);
+
+  const legacyRaw = localStorage.getItem(legacyLsKey);
+  if (legacyRaw) return safeParseJson(legacyRaw, fallbackValue);
+
+  return fallbackValue;
 }
 
-function readEnergyProgressFromLS(key) {
-  const raw = localStorage.getItem(key);
-  return safeParseJson(raw, { topics: {} });
-}
-
-function isEnergySectionCompleted(energyLsKey) {
-  const data = readEnergyProgressFromLS(energyLsKey);
-  const topics = data?.topics || {};
-  return ENERGY_TOPICS.every((id) => Boolean(topics?.[id]?.visited));
-}
-
-function getCompletedAchievementsFromLS(lsKey, map) {
-  const data = readProgressFromLS(lsKey);
-  const sims = data?.sims || {};
+function getCompletedAchievementsFromProgress(progressObj, map) {
+  const sims = progressObj?.sims || {};
   const done = new Set();
 
   Object.entries(map).forEach(([simId, achKey]) => {
@@ -106,8 +104,13 @@ function getCompletedAchievementsFromLS(lsKey, map) {
   return done;
 }
 
-function readAchievementsFromLS(achLsKey) {
-  const raw = localStorage.getItem(achLsKey);
+function isEnergySectionCompletedFromObj(energyProgressObj) {
+  const topics = energyProgressObj?.topics || {};
+  return ENERGY_TOPICS.every((id) => Boolean(topics?.[id]?.visited));
+}
+
+function readAchievementsFromLSWithFallback(scopedAchKey, legacyAchKey) {
+  const raw = localStorage.getItem(scopedAchKey) ?? localStorage.getItem(legacyAchKey);
   const parsed = safeParseJson(raw, null);
 
   if (Array.isArray(parsed)) {
@@ -163,6 +166,7 @@ export default function Dashboard() {
 
   const [completedBudgetSims, setCompletedBudgetSims] = useState([]);
   const [completedLegalSims, setCompletedLegalSims] = useState([]);
+  const [completedRepairsAchievements, setCompletedRepairsAchievements] = useState([]); // ✅ додали
 
   useEffect(() => {
     let alive = true;
@@ -209,6 +213,16 @@ export default function Dashboard() {
         } catch (_) {
           if (alive) setCompletedLegalSims([]);
         }
+
+        // ✅ repairs achievements (щоб % збігався з профілем)
+        try {
+          const res = await repairsApi.getAll(token);
+          const raw = res?.completedAchievementsJson ?? "[]";
+          const parsed = JSON.parse(raw);
+          if (alive) setCompletedRepairsAchievements(Array.isArray(parsed) ? parsed : []);
+        } catch (_) {
+          if (alive) setCompletedRepairsAchievements([]);
+        }
       } finally {
         // nothing
       }
@@ -225,12 +239,16 @@ export default function Dashboard() {
   const [completedFromLS, setCompletedFromLS] = useState(() => {
     const s = new Set();
 
-    getCompletedAchievementsFromLS(budgetLsKey, BUDGET_SIM_TO_ACH).forEach((k) => s.add(k));
-    getCompletedAchievementsFromLS(legalLsKey, LEGAL_SIM_TO_ACH).forEach((k) => s.add(k));
+    const budgetProgress = readFromLSWithFallback(budgetLsKey, LS_BUDGET_PROGRESS_KEY, { sims: {} });
+    const legalProgress = readFromLSWithFallback(legalLsKey, LS_LEGAL_PROGRESS_KEY, { sims: {} });
+    const energyProgress = readFromLSWithFallback(energyLsKey, LS_ENERGY_PROGRESS_KEY, { topics: {} });
+
+    getCompletedAchievementsFromProgress(budgetProgress, BUDGET_SIM_TO_ACH).forEach((k) => s.add(k));
+    getCompletedAchievementsFromProgress(legalProgress, LEGAL_SIM_TO_ACH).forEach((k) => s.add(k));
 
     // achievements + energy section
-    readAchievementsFromLS(achLsKey).forEach((k) => s.add(k));
-    if (isEnergySectionCompleted(energyLsKey)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
+    readAchievementsFromLSWithFallback(achLsKey, LS_ACHIEVEMENTS_KEY).forEach((k) => s.add(k));
+    if (isEnergySectionCompletedFromObj(energyProgress)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
 
     return Array.from(s);
   });
@@ -239,20 +257,33 @@ export default function Dashboard() {
     const syncFromLS = () => {
       const s = new Set();
 
-      getCompletedAchievementsFromLS(budgetLsKey, BUDGET_SIM_TO_ACH).forEach((k) => s.add(k));
-      getCompletedAchievementsFromLS(legalLsKey, LEGAL_SIM_TO_ACH).forEach((k) => s.add(k));
+      const budgetProgress = readFromLSWithFallback(budgetLsKey, LS_BUDGET_PROGRESS_KEY, { sims: {} });
+      const legalProgress = readFromLSWithFallback(legalLsKey, LS_LEGAL_PROGRESS_KEY, { sims: {} });
+      const energyProgress = readFromLSWithFallback(energyLsKey, LS_ENERGY_PROGRESS_KEY, { topics: {} });
 
-      readAchievementsFromLS(achLsKey).forEach((k) => s.add(k));
-      if (isEnergySectionCompleted(energyLsKey)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
+      getCompletedAchievementsFromProgress(budgetProgress, BUDGET_SIM_TO_ACH).forEach((k) => s.add(k));
+      getCompletedAchievementsFromProgress(legalProgress, LEGAL_SIM_TO_ACH).forEach((k) => s.add(k));
+
+      readAchievementsFromLSWithFallback(achLsKey, LS_ACHIEVEMENTS_KEY).forEach((k) => s.add(k));
+      if (isEnergySectionCompletedFromObj(energyProgress)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
 
       setCompletedFromLS(Array.from(s));
     };
 
     const onCustom = () => syncFromLS();
     const onStorage = (e) => {
-      if (e.key === budgetLsKey || e.key === legalLsKey || e.key === energyLsKey || e.key === achLsKey) {
-        syncFromLS();
-      }
+      const watchKeys = new Set([
+        budgetLsKey,
+        legalLsKey,
+        energyLsKey,
+        achLsKey,
+        LS_BUDGET_PROGRESS_KEY,
+        LS_LEGAL_PROGRESS_KEY,
+        LS_ENERGY_PROGRESS_KEY,
+        LS_ACHIEVEMENTS_KEY,
+      ]);
+
+      if (watchKeys.has(e.key)) syncFromLS();
     };
 
     window.addEventListener("lumen:progress-updated", onCustom);
@@ -273,9 +304,10 @@ export default function Dashboard() {
     completedBudgetSims.forEach((k) => s.add(k));
     completedLegalSims.forEach((k) => s.add(k));
     completedFromLS.forEach((k) => s.add(k));
+    completedRepairsAchievements.forEach((k) => s.add(k)); // ✅ додали
 
     return s;
-  }, [completedBudgetSims, completedLegalSims, completedFromLS]);
+  }, [completedBudgetSims, completedLegalSims, completedFromLS, completedRepairsAchievements]);
 
   // --- achievementsData як у профілі (щоб % збігався 1-в-1) ---
   const achievementsData = useMemo(
@@ -295,7 +327,7 @@ export default function Dashboard() {
       { key: "legal_debts_penalty", title: "Борги та пеня", desc: "Успішно пройти симуляцію", done: completedSet.has("legal_debts_penalty") },
       { key: "legal_repairs_game", title: "Хто що ремонтує", desc: "Пройти гру (50%+)", done: completedSet.has("legal_repairs_game") },
 
-      // ✅ Energy (додаємо — це і є причина різного %)
+      // Energy
       {
         key: ENERGY_SECTION_ACHIEVEMENT_ID,
         title: "Енергоефективність: усе пройдено",
@@ -306,9 +338,13 @@ export default function Dashboard() {
       { key: "tips_10", title: "Побутовий Філософ", desc: "Переглянути 10 порад", done: false },
       { key: "eco_all", title: "Еко-Гуру", desc: "Прочитати всі поради в розділі економії", done: false },
 
+      // Payments
       { key: "first_payment", title: "Перша сплата", desc: "Ви зробили свою першу оплату в системі", done: dashboardData.approvedCount >= 1 },
       { key: "payment_master", title: "Майстер платежів", desc: "5 успішних оплат", done: dashboardData.approvedCount >= 5 },
       { key: "level_pro", title: "Досвідчений користувач", desc: "Досягнуто рівня Легенда ЖКГ", done: dashboardData.approvedCount >= 10 },
+
+      // ✅ Repairs (ОСНОВНЕ для збігу %)
+      { key: "perfect_flat", title: "Ідеальна квартира", desc: "Проведіть чистку всіх приладів", done: completedSet.has("perfect_flat") },
 
       { key: "profile_filled", title: "Я у домі!", desc: "Заповнити профіль", done: true },
     ],
