@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FiUser, FiMenu, FiEdit2, FiTarget, FiArrowLeft, FiAward, FiCheck, FiArrowRight, FiCamera } from 'react-icons/fi';
+import { useNavigate } from "react-router-dom";
+import {
+  FiUser,
+  FiMenu,
+  FiEdit2,
+  FiTarget,
+  FiArrowLeft,
+  FiAward,
+  FiCheck,
+  FiArrowRight,
+  FiCamera,
+} from "react-icons/fi";
 
 import {
   ProfileWrapper,
@@ -34,11 +45,12 @@ import {
   Divider,
   SectionTitle,
   FormColumn,
-} from './Profile.styled';
+} from "./Profile.styled";
 
-import { useAuth } from "../../context/AuthContext.jsx";
-import { resolveAvatarSrc } from "../../utils/avatar";
-import { budgetContentApi } from "../../api/budgetContent";
+import { useAuth } from "../../context/AuthContext.jsx"; 
+import { resolveAvatarSrc } from "../../utils/avatar";  
+import { budgetContentApi } from "../../api/budgetContent"; 
+import { dashboardApi } from "../../api/payments";
 
 const LS_PROGRESS_KEY = "lumen.progress.budget";
 
@@ -78,12 +90,47 @@ function getCompletedAchievementsFromLS() {
 
 export default function Profile() {
   const [activeTab, setActiveTab] = useState("main");
-  const { user, token, updateProfile, uploadAvatar } = useAuth();
+  const navigate = useNavigate();
 
-  const [meta, setMeta] = useState({
-    level: "Новачок",
-    progress: 25,
-    currentGoal: "Фінансова грамотність",
+  // Використовуємо звичний token
+  const { user, token, updateProfile, uploadAvatar, logout } = useAuth();
+
+  const [dashboardData, setDashboardData] = useState({ approvedCount: 0, level: "" });
+
+  const goalRecommendations = useMemo(
+    () => ({
+      "Фінансова грамотність": [
+        "Склади персональний бюджет",
+        "Створи регулярну оплату рахунків",
+        "Створи фінансову подушку безпеки",
+      ],
+      "Енергоефективність": [
+        "Заміни лампочки на енергоощадні (LED)",
+        "Вимикай прилади з розеток на ніч",
+        "Встанови терморегулятори на батареї",
+      ],
+      "Без боргів": [
+        "Склади список усіх заборгованостей",
+        "Налаштуй автоплатежі для кредитів",
+        "Відмовся від непотрібних підписок",
+      ],
+    }),
+    []
+  );
+
+  const calculateLevel = (progress) => {
+    if (progress < 30) return "Новачок";
+    if (progress < 70) return "Впевнений користувач";
+    return "Майстер Побуту";
+  };
+
+  const [meta, setMeta] = useState(() => {
+    const savedGoal = localStorage.getItem("lumen_current_goal") || "Фінансова грамотність";
+    return {
+      level: "Новачок",
+      progress: 0,
+      currentGoal: savedGoal,
+    };
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -94,10 +141,7 @@ export default function Profile() {
   });
 
   useEffect(() => {
-    setEditFormData((prev) => ({
-      ...prev,
-      name: user?.name || "",
-    }));
+    setEditFormData((prev) => ({ ...prev, name: user?.name || "" }));
   }, [user]);
 
   const [completedBudgetSims, setCompletedBudgetSims] = useState([]);
@@ -110,6 +154,7 @@ export default function Profile() {
         if (!token) return;
 
         const res = await budgetContentApi.get(token);
+
         const raw =
           res?.completedSimulationsJson ??
           res?.CompletedSimulationsJson ??
@@ -127,6 +172,22 @@ export default function Profile() {
       alive = false;
     };
   }, [token]);
+  
+  useEffect(() => {
+    async function loadDashboardStats() {
+      try {
+        if (!token) return;
+        const res = await dashboardApi.get(token); 
+        setDashboardData({
+          approvedCount: res.approvedCount || 0,
+          level: res.level || ""
+        });
+      } catch (err) {
+        console.error("Помилка завантаження статистики", err);
+      }
+    }
+    loadDashboardStats();
+  }, [token]);
 
   const [completedFromLS, setCompletedFromLS] = useState(() =>
     Array.from(getCompletedAchievementsFromLS())
@@ -139,7 +200,6 @@ export default function Profile() {
     };
 
     const onCustom = () => syncFromLS();
-
     const onStorage = (e) => {
       if (e.key === LS_PROGRESS_KEY) syncFromLS();
     };
@@ -162,69 +222,25 @@ export default function Profile() {
 
   const achievementsData = useMemo(
     () => [
-      {
-        key: "master_all",
-        title: "Майстер Побуту",
-        desc: "Пройти всі симуляції",
-        done: false, 
-      },
-      {
-        key: "easy_5",
-        title: "Легкий на Підйом",
-        desc: "Пройти 5 симуляцій легкого рівня",
-        done: false,
-      },
-      {
-        key: "mid_5",
-        title: "Захисник Комфорту",
-        desc: "Пройти 5 симуляцій середнього рівня",
-        done: false,
-      },
-      {
-        key: "budget_read_bill",
-        title: "Як читати платіжку",
-        desc: "Пройти симуляцію читання платіжки",
-        done: completedSet.has("budget_read_bill"),
-      },
-      {
-        key: "budget_calculate_indicators",
-        title: "Як рахуються показники",
-        desc: "Пройти симуляцію розрахунку показників",
-        done: completedSet.has("budget_calculate_indicators"),
-      },
-      {
-        key: "budget_why_different_sums",
-        title: "Чому приходять різні суми",
-        desc: "Пройти симуляцію пошуку причин різниці сум",
-        done: completedSet.has("budget_why_different_sums"),
-      },
-      {
-        key: "budget_forecast_calculator",
-        title: "Калькулятор прогнозу витрат",
-        desc: "Пройти симуляцію прогнозування витрат",
-        done: completedSet.has("budget_forecast_calculator"),
-      },
+      { key: "master_all", title: "Майстер Побуту", desc: "Пройти всі симуляції", done: false },
+      { key: "easy_5", title: "Легкий на Підйом", desc: "Пройти 5 симуляцій легкого рівня", done: false },
+      { key: "mid_5", title: "Захисник Комфорту", desc: "Пройти 5 симуляцій середнього рівня", done: false },
 
-      {
-        key: "tips_10",
-        title: "Побутовий Філософ",
-        desc: "Переглянути 10 порад",
-        done: false,
-      },
-      {
-        key: "eco_all",
-        title: "Еко-Гуру",
-        desc: "Прочитати всі поради в розділі економії",
-        done: false,
-      },
-      {
-        key: "profile_filled",
-        title: "Я у домі!",
-        desc: "Заповнити профіль",
-        done: true, 
-      },
+      { key: "budget_read_bill", title: "Як читати платіжку", desc: "Пройти симуляцію читання платіжки", done: completedSet.has("budget_read_bill") },
+      { key: "budget_calculate_indicators", title: "Як рахуються показники", desc: "Пройти симуляцію розрахунку показників", done: completedSet.has("budget_calculate_indicators") },
+      { key: "budget_why_different_sums", title: "Чому приходять різні суми", desc: "Пройти симуляцію пошуку причин різниці сум", done: completedSet.has("budget_why_different_sums") },
+      { key: "budget_forecast_calculator", title: "Калькулятор прогнозу витрат", desc: "Пройти симуляцію прогнозування витрат", done: completedSet.has("budget_forecast_calculator") },
+
+      { key: "tips_10", title: "Побутовий Філософ", desc: "Переглянути 10 порад", done: false },
+      { key: "eco_all", title: "Еко-Гуру", desc: "Прочитати всі поради в розділі економії", done: false },
+
+      { key: "first_payment", title: "Перша сплата", desc: "Ви зробили свою першу оплату в системі", done: dashboardData.approvedCount >= 1 },
+      { key: "payment_master", title: "Майстер платежів", desc: "5 успішних оплат", done: dashboardData.approvedCount >= 5 },
+      { key: "level_pro", title: "Досвідчений користувач", desc: "Досягнуто рівня Легенда ЖКГ", done: dashboardData.approvedCount >= 10 },
+
+      { key: "profile_filled", title: "Я у домі!", desc: "Заповнити профіль", done: true },
     ],
-    [completedSet]
+    [completedSet, dashboardData]
   );
 
   const achievementsReceived = achievementsData.filter((a) => a.done).length;
@@ -235,7 +251,12 @@ export default function Profile() {
 
   useEffect(() => {
     const p = Math.round(achievementsPercent);
-    setMeta((prev) => (prev.progress === p ? prev : { ...prev, progress: p }));
+    const newLevel = calculateLevel(p);
+    
+    setMeta((prev) => {
+      if (prev.progress === p && prev.level === newLevel) return prev;
+      return { ...prev, progress: p, level: newLevel };
+    });
   }, [achievementsPercent]);
 
   const avatarSrc = resolveAvatarSrc(user?.avatarUrl);
@@ -303,13 +324,18 @@ export default function Profile() {
   };
 
   const handleChangeGoal = (newGoal) => {
+    localStorage.setItem("lumen_current_goal", newGoal);
     setMeta((prev) => ({ ...prev, currentGoal: newGoal }));
     goBack();
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <ProfileWrapper>
-      {/* --- ГОЛОВНА СТОРІНКА --- */}
       {activeTab === "main" && (
         <>
           <ProfileTitle>Профіль</ProfileTitle>
@@ -357,7 +383,6 @@ export default function Profile() {
           </UserHeaderCard>
 
           <ProfileGrid>
-            {/* Секція Досягнень */}
             <ContentCard>
               <CardHeader>
                 <CardTitle>Досягнення</CardTitle>
@@ -371,14 +396,7 @@ export default function Profile() {
                 <ProgressBarContainer>
                   <ProgressBarFill $percent={achievementsPercent} />
                 </ProgressBarContainer>
-
-                <div
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "14px",
-                    color: "#121212",
-                  }}
-                >
+                <div style={{ marginTop: "8px", fontSize: "14px", color: "#121212" }}>
                   {achievementsReceived} з {achievementsData.length} отримано
                 </div>
               </ProgressSection>
@@ -389,13 +407,12 @@ export default function Profile() {
                 Персональні рекомендації
               </CardTitle>
               <List>
-                <ListItem>Склади персональний бюджет</ListItem>
-                <ListItem>Створи регулярну оплату рахунків</ListItem>
-                <ListItem>Подумати про енергоощадність</ListItem>
+                {goalRecommendations[meta.currentGoal]?.map((rec, i) => (
+                  <ListItem key={i}>{rec}</ListItem>
+                ))}
               </List>
             </ContentCard>
 
-            {/* Секція Мети */}
             <ContentCard style={{ gridColumn: "1 / -1" }}>
               <div
                 style={{
@@ -413,27 +430,14 @@ export default function Profile() {
                   </CardHeader>
 
                   <List>
-                    <ListItem>Склади персональний бюджет</ListItem>
-                    <ListItem>Створи регулярну оплату рахунків</ListItem>
-                    <ListItem>Подумати про енергоощадність</ListItem>
+                    {goalRecommendations[meta.currentGoal]?.map((rec, i) => (
+                      <ListItem key={i}>{rec}</ListItem>
+                    ))}
                   </List>
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    minWidth: "200px",
-                  }}
-                >
-                  <span
-                    style={{
-                      marginBottom: "12px",
-                      fontWeight: "bold",
-                      color: "#121212",
-                    }}
-                  >
+                <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: "200px" }}>
+                  <span style={{ marginBottom: "12px", fontWeight: "bold", color: "#121212" }}>
                     Хочете змінити пріоритети?
                   </span>
                   <ActionButton onClick={() => setActiveTab("goals")}>
@@ -457,7 +461,7 @@ export default function Profile() {
               Всі досягнення
             </CardTitle>
 
-            <ul style={{ listStyle: "none", padding: 0 }}>
+            <ul style={{ listStyle: "none", padding: "0" }}>
               {achievementsData.map((item, index) => (
                 <AchievementRow key={`${item.key}-${index}`}>
                   <div style={{ fontSize: "24px", color: "#111" }}>
@@ -465,13 +469,7 @@ export default function Profile() {
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <h3
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: "800",
-                        margin: "0 0 4px",
-                      }}
-                    >
+                    <h3 style={{ fontSize: "16px", fontWeight: "800", margin: "0 0 4px" }}>
                       «{item.title}»
                     </h3>
                     <p style={{ margin: 0, fontSize: "14px", color: "#555" }}>
@@ -581,7 +579,6 @@ export default function Profile() {
               </InputGroup>
 
               <Divider />
-
               <SectionTitle>Зміна пароля</SectionTitle>
 
               <InputGroup>
@@ -615,10 +612,7 @@ export default function Profile() {
                   placeholder="Повторіть пароль"
                   value={editFormData.confirmPassword}
                   onChange={(e) =>
-                    setEditFormData((p) => ({
-                      ...p,
-                      confirmPassword: e.target.value,
-                    }))
+                    setEditFormData((p) => ({ ...p, confirmPassword: e.target.value }))
                   }
                 />
               </InputGroup>
@@ -626,6 +620,19 @@ export default function Profile() {
               <ActionButton onClick={handleSaveProfile} style={{ marginTop: "16px" }}>
                 Зберегти зміни
               </ActionButton>
+
+              <ActionButton 
+                onClick={handleLogout} 
+                style={{ 
+                  marginTop: "16px", 
+                  backgroundColor: "transparent", 
+                  border: "2px solid crimson", 
+                  color: "crimson" 
+                }}
+              >
+                Вийти з акаунту
+              </ActionButton>
+
             </FormColumn>
           </ContentCard>
         </>

@@ -25,7 +25,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
@@ -34,10 +34,10 @@ const Login = () => {
 
     try {
       setLoading(true);
-      await login({ email, password });
+      await login({ email: email.trim(), password });
       navigate("/", { replace: true });
-    } catch (e) {
-      setError(e.message || "Невірна пошта або пароль");
+    } catch (err) {
+      setError(err?.message || "Невірна пошта або пароль");
     } finally {
       setLoading(false);
     }
@@ -46,18 +46,19 @@ const Login = () => {
   return (
     <AuthPageWrapper>
       <AuthLogoImage src={lumenLogo} alt="LUMEN Logo" />
+
       <AuthFormContainer>
         <AuthTitle>Увійти в обліковий запис</AuthTitle>
 
-        <AuthForm onSubmit={onSubmit}>
+        <AuthForm onSubmit={handleSubmit}>
           <AuthFieldGroup>
             <AuthLabel>Пошта</AuthLabel>
             <AuthInput
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </AuthFieldGroup>
 
@@ -65,10 +66,10 @@ const Login = () => {
             <AuthLabel>Пароль</AuthLabel>
             <AuthInput
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </AuthFieldGroup>
 
@@ -81,6 +82,28 @@ const Login = () => {
           <AuthSubmitButton type="submit" disabled={loading}>
             {loading ? "Зачекайте..." : "Увійти"}
           </AuthSubmitButton>
+
+          {/* ✅ НОВЕ: кнопка/лінк на реєстрацію */}
+          <button
+            type="button"
+            onClick={() => navigate("/register")}
+            style={{
+              marginTop: 12,
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.15)",
+              background: "transparent",
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            Зареєструватись
+          </button>
+
+          <div style={{ marginTop: 12, fontSize: 13, opacity: 0.75, textAlign: "center" }}>
+            Немає акаунта? Натисни “Зареєструватись”
+          </div>
         </AuthForm>
       </AuthFormContainer>
     </AuthPageWrapper>

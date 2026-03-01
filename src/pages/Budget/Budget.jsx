@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiFileText,
@@ -26,6 +26,8 @@ import {
 } from "./BudgetPage.styled";
 
 import economyData from "../../mocks/economyData.json";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { budgetContentApi } from "../../api/budgetContent";
 
 function BudgetHeroIllustration() {
   return (
@@ -43,50 +45,109 @@ function BudgetHeroIllustration() {
 
 export default function Budget() {
   const navigate = useNavigate();
+  const { token } = useAuth();
+
   const [data, setData] = useState(null);
+  const [completedKeys, setCompletedKeys] = useState([]);
 
   useEffect(() => {
     setData(economyData.budget);
   }, []);
 
-  const topics = [
-    {
-      title: "Як читати платіжку",
-      text: "Структура, тарифікація, пеня",
-      Icon: FiFileText,
-      path: "/budget/read-bill",
-    },
-    {
-      title: "Як рахуються показники",
-      text: "Одноставковий чи двоставковий тариф",
-      Icon: FiActivity,
-      path: "/budget/read-indicators",
-    },
-    {
-      title: "Формується кінцева сума",
-      text: "Період, прогнозовані витрати",
-      Icon: FiTrendingUp,
-      path: "/budget/final-sum",
-    },
-    {
-      title: "Чому приходять різні суми",
-      text: "Абонплата, несподівані рядки",
-      Icon: FiCreditCard,
-      path: "/budget/why-different-sums",
-    },
-    {
-      title: "Калькулятор прогнозу",
-      text: "Що буде, якщо…",
-      Icon: FaCalculator,
-      path: "/budget/forecast-calculator",
-    },
-    {
-      title: "Місячне бюджетування",
-      text: "Як спланувати витрати на місяць",
-      Icon: FiCalendar,
-      path: "/budget/monthly-budgeting",
-    },
-  ];
+  useEffect(() => {
+    const loadProgress = async () => {
+      try {
+        const res = await budgetContentApi.get(token);
+        const parsed = JSON.parse(res?.completedSimulationsJson ?? "[]");
+        setCompletedKeys(Array.isArray(parsed) ? parsed : []);
+      } catch (err) {
+        console.error(err);
+        setCompletedKeys([]);
+      }
+    };
+
+    if (token) loadProgress();
+  }, [token]);
+
+  const topics = useMemo(
+    () => [
+      {
+        id: "read-bill",
+        completeKey: "budget_read_bill",
+        title: "Як читати платіжку",
+        text: "Структура, тарифікація, пеня",
+        Icon: FiFileText,
+        path: "/budget/read-bill",
+      },
+      {
+        id: "read-indicators",
+        completeKey: "budget_read_indicators",
+        title: "Як рахуються показники",
+        text: "Одноставковий чи двоставковий тариф",
+        Icon: FiActivity,
+        path: "/budget/read-indicators",
+      },
+      {
+        id: "final-sum",
+        completeKey: "budget_final_sum",
+        title: "Формується кінцева сума",
+        text: "Період, прогнозовані витрати",
+        Icon: FiTrendingUp,
+        path: "/budget/final-sum",
+      },
+      {
+        id: "why-different-sums",
+        completeKey: "budget_why_different_sums",
+        title: "Чому приходять різні суми",
+        text: "Абонплата, несподівані рядки",
+        Icon: FiCreditCard,
+        path: "/budget/why-different-sums",
+      },
+      {
+        id: "forecast-calculator",
+        completeKey: "budget_forecast_calculator",
+        title: "Калькулятор прогнозу",
+        text: "Що буде, якщо…",
+        Icon: FaCalculator,
+        path: "/budget/forecast-calculator",
+      },
+      {
+        id: "monthly-budgeting",
+        completeKey: "budget_monthly_budgeting",
+        title: "Місячне бюджетування",
+        text: "Як спланувати витрати на місяць",
+        Icon: FiCalendar,
+        path: "/budget/monthly-budgeting",
+      },
+    ],
+    []
+  );
+
+  const topicKeys = topics.map((t) => t.completeKey);
+  const completedTopicsCount = completedKeys.filter((k) => topicKeys.includes(k))
+    .length;
+
+  const totalSteps = topics.length;
+  const progress = totalSteps
+    ? Math.round((completedTopicsCount / totalSteps) * 100)
+    : 0;
+
+  const onOpenTopic = async (topic) => {
+    if (!topic?.path) return;
+
+    
+    if (token && topic.completeKey && !completedKeys.includes(topic.completeKey)) {
+      const next = [...completedKeys, topic.completeKey];
+      setCompletedKeys(next);
+
+      try {
+        await budgetContentApi.complete(token, topic.completeKey);
+      } catch (_) {
+      }
+    }
+
+    navigate(topic.path);
+  };
 
   if (!data) return <div>Завантаження даних...</div>;
 
@@ -96,7 +157,7 @@ export default function Budget() {
         <BudgetHero aria-label="Бюджет та рахунки">
           <BudgetHeroText>
             <BudgetHeroTitle>
-              Бюджет: {data.currentSpent} / {data.totalLimit} {data.currency}
+              Бюджет
             </BudgetHeroTitle>
             <BudgetHeroDescription>
               Тут ти навчишся розуміти свої платіжки, читати тарифи та
@@ -108,24 +169,20 @@ export default function Budget() {
             <BudgetHeroIllustration />
           </BudgetHeroIllustrationWrapper>
 
-          <BudgetProgressBadge>
-             Витрачено {Math.round((data.currentSpent / data.totalLimit) * 100)}%
-          </BudgetProgressBadge>
+          <BudgetProgressBadge>Прогрес {progress}%</BudgetProgressBadge>
         </BudgetHero>
 
         <BudgetTopicsGrid>
-          {topics.map(({ title, text, Icon, path }) => (
+          {topics.map((topic) => (
             <BudgetTopicCard
               type="button"
-              key={title}
-              onClick={() => {
-                if (path) navigate(path);
-              }}
+              key={topic.id}
+              onClick={() => onOpenTopic(topic)}
             >
-              <BudgetTopicIcon as={Icon} />
+              <BudgetTopicIcon as={topic.Icon} />
               <div>
-                <BudgetTopicTitle>{title}</BudgetTopicTitle>
-                <BudgetTopicText>{text}</BudgetTopicText>
+                <BudgetTopicTitle>{topic.title}</BudgetTopicTitle>
+                <BudgetTopicText>{topic.text}</BudgetTopicText>
               </div>
             </BudgetTopicCard>
           ))}

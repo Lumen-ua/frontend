@@ -29,7 +29,7 @@ import {
 } from "recharts";
 
 import { useAuth } from "../../../context/AuthContext";
-import { paymentsApi, dashboardApi } from "../../../api/payments";
+import { paymentsApi, dashboardApi, templatesApi } from "../../../api/payments";
 
 const REFUND_WINDOW = 30;
 
@@ -96,14 +96,14 @@ const Payments = ({ onBack }) => {
 
   const hasMeter = METER_SERVICES.includes(service);
 
-  // ===== INIT FROM BACKEND =====
+  // INIT FROM BACKEND 
   useEffect(() => {
     if (!token) return;
 
     async function load() {
       try {
             const historyData = await paymentsApi.getHistory(token);
-
+            
             const paymentsArray = Array.isArray(historyData)
             ? historyData
             : historyData?.payments || [];
@@ -128,6 +128,9 @@ const Payments = ({ onBack }) => {
 
         setHistory(mapped);
 
+        const templatesData = await templatesApi.get(token);
+        setTemplates(templatesData);
+
         const dashboard = await dashboardApi.get(token);
 
         setBalance(dashboard.balance);
@@ -142,7 +145,7 @@ const Payments = ({ onBack }) => {
     load();
   }, [token]);
 
-  // ===== GLOBAL TIMER =====
+  // GLOBAL TIMER 
   useEffect(() => {
     const interval = setInterval(() => {
       setHistory(prev =>
@@ -152,6 +155,7 @@ const Payments = ({ onBack }) => {
           }
 
           if (p.status === "processing" && p.secondsLeft === 0) {
+            setApprovedCount(count => count + 1);
             return { ...p, status: "approved" };
           }
 
@@ -163,18 +167,7 @@ const Payments = ({ onBack }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // ===== LEVEL AUTO UPDATE =====
-  useEffect(() => {
-    const approved = history.filter(p => p.status === "approved").length;
-    setApprovedCount(approved);
-
-    if (approved >= 10) setUserLevel("Легенда ЖКГ 🔥");
-    else if (approved >= 5) setUserLevel("Комунальний майстер 💪");
-    else if (approved >= 1) setUserLevel("Новачок 🟢");
-    else setUserLevel("Без досвіду");
-  }, [history]);
-
-  // ===== METER CALC =====
+  // METER CALC 
   useEffect(() => {
     if (!hasMeter) return;
 
@@ -228,7 +221,7 @@ const Payments = ({ onBack }) => {
     return true;
   };
 
-  // ===== PAY =====
+  // PAY 
   const handlePay = async () => {
     setError("");
     setSuccess("");
@@ -271,7 +264,7 @@ const Payments = ({ onBack }) => {
     }
   };
 
-  // ===== REFUND =====
+  // REFUND 
   const refundPayment = async (p) => {
     try {
       await paymentsApi.refund(token, p.id);
@@ -319,23 +312,29 @@ const Payments = ({ onBack }) => {
     if (s === "redirected") return "Перенаправлено";
   };
 
-  const saveTemplate = () => {
+  const saveTemplate = async () => {
     if (!templateName) {
       setError("Введіть назву шаблону");
       return;
     }
 
-    const newTemplate = {
-      id: "t" + Date.now(),
-      name: templateName,
-      service,
-      type: payType,
-      value: payType === "address" ? address : identifier
-    };
+    try {
+      const tpl = await templatesApi.create(token, {
+        name: templateName,
+        service,
+        type: payType,
+        value:
+          payType === "address"
+            ? JSON.stringify(address)
+            : identifier
+      });
 
-    setTemplates(prev => [...prev, newTemplate]);
-    setTemplateName("");
-    setSuccess("Шаблон збережено");
+      setTemplates(prev => [...prev, tpl]);
+      setTemplateName("");
+      setSuccess("Шаблон збережено");
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   const applyTemplate = (tpl) => {
@@ -343,7 +342,7 @@ const Payments = ({ onBack }) => {
     setPayType(tpl.type);
 
     if (tpl.type === "address") {
-      setAddress(tpl.value);
+      setAddress(JSON.parse(tpl.value));
       setIdentifier("");
     } else {
       setIdentifier(tpl.value);
@@ -352,8 +351,13 @@ const Payments = ({ onBack }) => {
     setTab("pay");
   };
 
-  const deleteTemplate = (id) => {
-    setTemplates(prev => prev.filter(t => t.id !== id));
+  const deleteTemplate = async (id) => {
+    try {
+      await templatesApi.delete(token, id);
+      setTemplates(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   return (
@@ -362,7 +366,7 @@ const Payments = ({ onBack }) => {
       <BackButton onClick={onBack}>← Назад</BackButton>
 
       <h1>{balance.toFixed(2)} ₴</h1>
-    <LevelSection>
+          <LevelSection>
             <p>🎮 Рівень: <b>{userLevel}</b></p>
             <p>Підтверджених платежів: {approvedCount}</p>
 
@@ -373,30 +377,30 @@ const Payments = ({ onBack }) => {
 
           {error && <ErrorBox>{error}</ErrorBox>}
           {success && <SuccessBox>{success}</SuccessBox>}
-<TabsRow>
-  <Button $tab $active={tab === "pay"} onClick={() => setTab("pay")}>
-    Оплата
-  </Button>
+          <TabsRow>
+            <Button $tab $active={tab === "pay"} onClick={() => setTab("pay")}>
+              Оплата
+            </Button>
 
-  <Button $tab $active={tab === "templates"} onClick={() => setTab("templates")}>
-    Шаблони
-  </Button>
+            <Button $tab $active={tab === "templates"} onClick={() => setTab("templates")}>
+              Шаблони
+            </Button>
 
-  <Button $tab $active={tab === "history"} onClick={() => setTab("history")}>
-    Історія
-  </Button>
+            <Button $tab $active={tab === "history"} onClick={() => setTab("history")}>
+              Історія
+            </Button>
 
-  <Button $tab $active={tab === "refunds"} onClick={() => setTab("refunds")}>
-    Повернення
-  </Button>
-  <Button $tab $active={tab === "dashboard"} onClick={() => setTab("dashboard")}>
-  Dashboard
-</Button>
+            <Button $tab $active={tab === "refunds"} onClick={() => setTab("refunds")}>
+              Повернення
+            </Button>
 
-</TabsRow>
+            <Button $tab $active={tab === "dashboard"} onClick={() => setTab("dashboard")}>
+              Dashboard
+            </Button>
 
+          </TabsRow>
 
-      {/* ===== PAY ===== */}
+      {/* PAY */}
       {tab === "pay" && (
         <PayCard>
           <Select value={service} onChange={e => setService(e.target.value)}>
@@ -457,7 +461,7 @@ const Payments = ({ onBack }) => {
         </PayCard>
       )}
 
-      {/* ===== TEMPLATES ===== */}
+      {/* TEMPLATES */}
       {tab === "templates" && (
         <PayCard>
           {templates.map(tpl => (
@@ -470,7 +474,7 @@ const Payments = ({ onBack }) => {
         </PayCard>
       )}
 
-      {/* ===== HISTORY ===== */}
+      {/* HISTORY */}
       {tab === "history" && (
         <HistoryCard>
           {history.map(p => (
@@ -494,104 +498,104 @@ const Payments = ({ onBack }) => {
         </HistoryCard>
       )}
 
-      {/* ===== REFUNDS ===== */}
-{tab === "refunds" && (
-  <HistoryCard>
-    {history
-      .map(p => (
-        <HistoryItem key={p.id} $status={p.status}>
-          <div>
-            <b
-              style={{
-                textDecoration:
-                  p.status === "refunded"
-                    ? "line-through"
-                    : "none"
-              }}
-            >
-              {p.service}
-            </b>
+      {/* REFUNDS */}
+      {tab === "refunds" && (
+        <HistoryCard>
+          {history
+            .map(p => (
+              <HistoryItem key={p.id} $status={p.status}>
+                <div>
+                  <b
+                    style={{
+                      textDecoration:
+                        p.status === "refunded"
+                          ? "line-through"
+                          : "none"
+                    }}
+                  >
+                    {p.service}
+                  </b>
 
-            <div
-              style={{
-                textDecoration:
-                  p.status === "refunded"
-                    ? "line-through"
-                    : "none"
-              }}
-            >
-              {p.identifier}
-            </div>
+                  <div
+                    style={{
+                      textDecoration:
+                        p.status === "refunded"
+                          ? "line-through"
+                          : "none"
+                    }}
+                  >
+                    {p.identifier}
+                  </div>
 
-            <StatusBadge $status={p.status}>
-              {statusText(p.status)}
-            </StatusBadge>
+                  <StatusBadge $status={p.status}>
+                    {statusText(p.status)}
+                  </StatusBadge>
 
-            {p.status === "processing" && (
-              <TimerText>
-                Залишилось: {p.secondsLeft} сек
-              </TimerText>
-            )}
-          </div>
+                  {p.status === "processing" && (
+                    <TimerText>
+                      Залишилось: {p.secondsLeft} сек
+                    </TimerText>
+                  )}
+                </div>
 
-          <div>
-            {p.status === "processing" && (
-              <Button onClick={() => refundPayment(p)}>
-                ↩ Повернути
-              </Button>
-            )}
+                <div>
+                  {p.status === "processing" && (
+                    <Button onClick={() => refundPayment(p)}>
+                      ↩ Повернути
+                    </Button>
+                  )}
 
-            {p.status !== "refunded" && (
-              <Button onClick={() => setRedirectId(p.id)}>
-                🔁 Перенаправити
-              </Button>
-            )}
-            {redirectId === p.id && (
-              <>
-                <Field
-                  placeholder="Нові реквізити"
-                  value={newIdentifier}
-                  onChange={e => setNewIdentifier(e.target.value)}
+                  {p.status !== "refunded" && (
+                    <Button onClick={() => setRedirectId(p.id)}>
+                      🔁 Перенаправити
+                    </Button>
+                  )}
+                  {redirectId === p.id && (
+                    <>
+                      <Field
+                        placeholder="Нові реквізити"
+                        value={newIdentifier}
+                        onChange={e => setNewIdentifier(e.target.value)}
+                      />
+                      <Button onClick={() => redirectPayment(p)}>
+                        OK
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </HistoryItem>
+            ))}
+        </HistoryCard>
+      )}
+
+      {tab === "dashboard" && (
+        <PayCard>
+          <h2>📊 Аналітика витрат</h2>
+
+          {dashboardData.length === 0 && (
+            <p>Немає підтверджених платежів</p>
+          )}
+
+          {dashboardData.length > 0 && (
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={dashboardData}>
+            <XAxis dataKey="service" />
+            <YAxis />
+            <Tooltip formatter={(value) => `${value.toFixed(2)} ₴`} />
+            <Bar dataKey="total">
+              {dashboardData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={SERVICE_COLORS[entry.service] || "#8884d8"}
                 />
-                <Button onClick={() => redirectPayment(p)}>
-                  OK
-                </Button>
-              </>
-            )}
-          </div>
-        </HistoryItem>
-      ))}
-  </HistoryCard>
-)}
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
 
-{tab === "dashboard" && (
-  <PayCard>
-    <h2>📊 Аналітика витрат</h2>
-
-    {dashboardData.length === 0 && (
-      <p>Немає підтверджених платежів</p>
+      </PayCard>
     )}
-
-    {dashboardData.length > 0 && (
-  <ResponsiveContainer width="100%" height={300}>
-    <BarChart data={dashboardData}>
-      <XAxis dataKey="service" />
-      <YAxis />
-      <Tooltip formatter={(value) => `${value.toFixed(2)} ₴`} />
-      <Bar dataKey="total">
-        {dashboardData.map((entry, index) => (
-          <Cell
-            key={`cell-${index}`}
-            fill={SERVICE_COLORS[entry.service] || "#8884d8"}
-          />
-        ))}
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-)}
-
-  </PayCard>
-)}
 
     </div>
   );

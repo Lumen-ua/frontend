@@ -6,7 +6,7 @@ import NunitoBold from "../assets/fonts/Nunito-Bold.ttf";
 
 const GlobalStyle = createGlobalStyle`
   /* FONTS */
-  @font-face {
+    @font-face {
     font-family: "Nunito";
     src: url(${NunitoRegular}) format("truetype");
     font-weight: 400;
@@ -26,6 +26,23 @@ const GlobalStyle = createGlobalStyle`
     font-family: "Nunito";
     src: url(${NunitoBold}) format("truetype");
     font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  /* мапимо 800/900 на той самий Bold, але БЕЗ окремих імпортів */
+  @font-face {
+    font-family: "Nunito";
+    src: url(${NunitoBold}) format("truetype");
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "Nunito";
+    src: url(${NunitoBold}) format("truetype");
+    font-weight: 900;
     font-style: normal;
     font-display: swap;
   }

@@ -18,6 +18,27 @@ export const paymentsApi = {
     }),
 };
 
+export const templatesApi = {
+  get: (token) =>
+    apiRequest("/api/payments/templates", {
+      method: "GET",
+      token
+    }),
+
+  create: (token, data) =>
+    apiRequest("/api/payments/templates", {
+      method: "POST",
+      body: data,
+      token
+    }),
+
+  delete: (token, id) =>
+    apiRequest(`/api/payments/templates/${id}`, {
+      method: "DELETE",
+      token
+    }),
+};
+
 export const dashboardApi = {
   get: (token) =>
     apiRequest("/api/dashboard", {

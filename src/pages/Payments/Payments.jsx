@@ -33,6 +33,7 @@ import {
     InfoIcon,
     InfoTitle,
     InfoDesc,
+    MatrixWrapper,
     Matrix,
     MatrixCell,
     RefundMap,
@@ -100,14 +101,14 @@ const enterMenu = [
 
 export default function Payments({ onBack }) {
     const [activeTopic, setActiveTopic] = useState("home");
-const [visitedTopics, setVisitedTopics] = useState(["home"]);
+    const [visitedTopics, setVisitedTopics] = useState(["home"]);
 
-const openTopic = (id) => {
-  setActiveTopic(id);
-  setVisitedTopics(prev =>
-    prev.includes(id) ? prev : [...prev, id]
-  );
-};
+    const openTopic = (id) => {
+    setActiveTopic(id);
+    setVisitedTopics(prev =>
+        prev.includes(id) ? prev : [...prev, id]
+    );
+    };
 
     return (
         <Page>
@@ -142,45 +143,42 @@ const openTopic = (id) => {
 
                 {/* ПУЛЬТ */}
                 <HomeRemote>
-                <ControlPanel>
-                <RemoteBody>
+                    <ControlPanel>
+                        <RemoteBody>
 
-                <Led active />
+                        <Led active />
 
-                <RemoteScreen>
-                <ScreenMain>ПУЛЬТ ОПЛАТИ КОМУНАЛЬНИХ ПОСЛУГ</ScreenMain>
-                <ScreenSub>Активно: {activeTopic}</ScreenSub>
-                </RemoteScreen>
+                            <RemoteScreen>
+                                <ScreenMain>ПУЛЬТ ОПЛАТИ КОМУНАЛЬНИХ ПОСЛУГ</ScreenMain>
+                                <ScreenSub>Активно: {activeTopic}</ScreenSub>
+                            </RemoteScreen>
 
-                <MainButton
-                onClick={() => window.location.href = "../../Simulations"}
-                >
-                ОПЛАТА
-                </MainButton>
+                            <MainButton
+                            onClick={() => window.location.href = "../../Simulations"}
+                            >
+                                ОПЛАТА
+                            </MainButton>
 
-                <NavGrid>
-                <RemoteButton onClick={() => openTopic("meters")}>
-                    ПОКАЗНИКИ
-                </RemoteButton>
+                            <NavGrid>
+                                <RemoteButton onClick={() => openTopic("meters")}>
+                                    ПОКАЗНИКИ
+                                </RemoteButton>
 
-                <RemoteButton onClick={() => openTopic("template")}>
-                    ШАБЛОНИ
-                </RemoteButton>
+                                <RemoteButton onClick={() => openTopic("template")}>
+                                    ШАБЛОНИ
+                                </RemoteButton>
 
-                <RemoteButton onClick={() => openTopic("refund")}>
-                    ПОВЕРНЕННЯ
-                </RemoteButton>
+                                <RemoteButton onClick={() => openTopic("refund")}>
+                                    ПОВЕРНЕННЯ
+                                </RemoteButton>
 
-                <RemoteButton onClick={() => openTopic("enter")}>
-                    ЯК ЗАЙТИ
-                </RemoteButton>
-                </NavGrid>
-
-            </RemoteBody>
-            </ControlPanel>
-
+                                <RemoteButton onClick={() => openTopic("enter")}>
+                                    ЯК ЗАЙТИ
+                                </RemoteButton>
+                            </NavGrid>
+                        </RemoteBody>
+                    </ControlPanel>
                 </HomeRemote>
-
             </HomeLayout>
             )}
 
@@ -484,23 +482,25 @@ const openTopic = (id) => {
 
                                 </ModeCard>
                             </GridTwo>
-                            <Matrix>
-                                <MatrixCell header>Функція</MatrixCell>
-                                <MatrixCell header>ЄДРПОУ</MatrixCell>
-                                <MatrixCell header>Шаблон</MatrixCell>
+                            <MatrixWrapper>
+                                <Matrix>
+                                    <MatrixCell header>Функція</MatrixCell>
+                                    <MatrixCell header>ЄДРПОУ</MatrixCell>
+                                    <MatrixCell header>Шаблон</MatrixCell>
 
-                                <MatrixCell>Пошук отримувача</MatrixCell>
-                                <MatrixCell>✅</MatrixCell>
-                                <MatrixCell>❌</MatrixCell>
+                                    <MatrixCell>Пошук отримувача</MatrixCell>
+                                    <MatrixCell>✅</MatrixCell>
+                                    <MatrixCell>❌</MatrixCell>
 
-                                <MatrixCell>Збереження</MatrixCell>
-                                <MatrixCell>❌</MatrixCell>
-                                <MatrixCell>✅</MatrixCell>
+                                    <MatrixCell>Збереження</MatrixCell>
+                                    <MatrixCell>❌</MatrixCell>
+                                    <MatrixCell>✅</MatrixCell>
 
-                                <MatrixCell>Швидкий платіж</MatrixCell>
-                                <MatrixCell>⚠️</MatrixCell>
-                                <MatrixCell>🚀</MatrixCell>
-                            </Matrix>
+                                    <MatrixCell>Швидкий платіж</MatrixCell>
+                                    <MatrixCell>⚠️</MatrixCell>
+                                    <MatrixCell>🚀</MatrixCell>
+                                </Matrix>
+                            </MatrixWrapper>
                         </>
                     )}
 
