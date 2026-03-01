@@ -24,4 +24,11 @@ export const repairsApi = {
       body: data,
       token,
     }),
+
+  addAchievement: (data, token) =>
+  apiRequest("/api/RepairsContent/achievement", {
+    method: "POST",
+    body: data,
+    token,
+  }),
 };
