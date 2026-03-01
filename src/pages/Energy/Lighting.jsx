@@ -1,7 +1,8 @@
-﻿import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { FiArrowLeft, FiZap } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { energyContentApi } from "../../api/energyContent";
 
 const ArticlePage = styled.div`
   width: 100%;
@@ -26,7 +27,7 @@ const BackButton = styled.button`
   cursor: pointer;
   margin-bottom: 24px;
   padding: 8px 0;
-  
+
   &:hover {
     color: #166534;
     text-decoration: underline;
@@ -67,7 +68,7 @@ const ContentBlock = styled.div`
     margin-bottom: 24px;
     list-style-type: disc;
   }
-  
+
   li {
     margin-bottom: 8px;
   }
@@ -78,13 +79,13 @@ const ContentBlock = styled.div`
 `;
 
 const CalculatorBox = styled.div`
-  background-color: #dcfce7; /* Світло-зелений */
+  background-color: #dcfce7;
   border: 3px solid #166534;
   border-radius: 12px;
   padding: 24px;
   margin: 32px 0;
   text-align: center;
-  box-shadow: 4px 4px 0px #166534; /* Brutalism shadow */
+  box-shadow: 4px 4px 0px #166534;
 `;
 
 const CalcTitle = styled.h3`
@@ -109,7 +110,7 @@ const CalcInput = styled.input`
   margin: 0 10px;
   outline: none;
   background: white;
-  
+
   &:focus {
     box-shadow: 0 0 0 3px rgba(22, 101, 52, 0.3);
   }
@@ -132,10 +133,108 @@ const CalcResult = styled.div`
   }
 `;
 
+const LS_ENERGY_PROGRESS_KEY = "lumen.progress.energy";
+const LS_ACHIEVEMENTS_KEY = "lumen.achievements";
+
+const TOPIC_ID = "lighting";
+
+const ENERGY_TOPIC_IDS = ["lighting", "heating", "appliances", "water", "smart-home"];
+const ENERGY_SECTION_ACH_ID = "energy_efficiency_completed";
+const ENERGY_SECTION_ACH_TITLE = "Енергоефективність: усі теми пройдено";
+
+function safeParseJson(str, fallback) {
+  try {
+    const v = JSON.parse(str);
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function syncEnergyTopicToServer(topicId) {
+  const token = localStorage.getItem("lumen_token");
+  if (!token) return;
+
+  try {
+    await energyContentApi.complete(token, topicId);
+  } catch (e) {
+    console.warn("[Energy] complete() failed:", e);
+  }
+}
+
+function grantEnergyAchievementOnce() {
+  const raw = localStorage.getItem(LS_ACHIEVEMENTS_KEY);
+  const data = safeParseJson(raw, []);
+
+  if (Array.isArray(data)) {
+    const exists = data.some((a) => a?.id === ENERGY_SECTION_ACH_ID);
+    if (exists) return;
+
+    const next = [
+      ...data,
+      { id: ENERGY_SECTION_ACH_ID, title: ENERGY_SECTION_ACH_TITLE, done: true },
+    ];
+    localStorage.setItem(LS_ACHIEVEMENTS_KEY, JSON.stringify(next));
+  } else if (data && typeof data === "object") {
+    if (data?.[ENERGY_SECTION_ACH_ID]?.done) return;
+
+    const next = {
+      ...data,
+      [ENERGY_SECTION_ACH_ID]: { title: ENERGY_SECTION_ACH_TITLE, done: true },
+    };
+    localStorage.setItem(LS_ACHIEVEMENTS_KEY, JSON.stringify(next));
+  } else {
+    localStorage.setItem(
+      LS_ACHIEVEMENTS_KEY,
+      JSON.stringify([{ id: ENERGY_SECTION_ACH_ID, title: ENERGY_SECTION_ACH_TITLE, done: true }])
+    );
+  }
+
+  window.dispatchEvent(new Event("lumen:achievements-updated"));
+}
+
+function maybeGrantEnergyAchievement(progressData) {
+  const topics = progressData?.topics || {};
+  const completed = ENERGY_TOPIC_IDS.reduce(
+    (acc, id) => acc + (topics?.[id]?.visited ? 1 : 0),
+    0
+  );
+
+  if (completed === ENERGY_TOPIC_IDS.length) {
+    grantEnergyAchievementOnce();
+  }
+}
+
+function markEnergyTopicVisited(topicId) {
+  const raw = localStorage.getItem(LS_ENERGY_PROGRESS_KEY);
+  const data = safeParseJson(raw, { topics: {} });
+  if (data?.topics?.[topicId]?.visited) return;
+
+  const next = {
+    ...data,
+    topics: {
+      ...(data.topics || {}),
+      [topicId]: { visited: true, visitedAt: new Date().toISOString() },
+    },
+  };
+
+  localStorage.setItem(LS_ENERGY_PROGRESS_KEY, JSON.stringify(next));
+  maybeGrantEnergyAchievement(next);
+
+  window.dispatchEvent(new Event("lumen:progress-updated"));
+}
+
 export default function Lighting() {
   const navigate = useNavigate();
-  const [bulbs, setBulbs] = useState(5); 
-  const savingsPerBulb = 350; 
+
+  useEffect(() => {
+    markEnergyTopicVisited(TOPIC_ID);
+
+    syncEnergyTopicToServer(TOPIC_ID);
+  }, []);
+
+  const [bulbs, setBulbs] = useState(5);
+  const savingsPerBulb = 350;
   const totalSavings = bulbs * savingsPerBulb;
 
   const handleInputChange = (e) => {
