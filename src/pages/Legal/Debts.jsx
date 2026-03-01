@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowRight, FiDollarSign, FiAlertTriangle } from "react-icons/fi";
-// Якщо є картинка комара, розкоментуй рядок нижче
-// import mosquitoImg from '../../assets/images/mosquito_money.webp';
 
 import {
   DebtsWrapper,
@@ -22,33 +20,101 @@ import {
   ResultBadge
 } from './Debts.styled';
 
+import { useAuth } from "../../context/AuthContext.jsx";
+import { legalContentApi } from "../../api/legalContent";
+
+const LS_LEGAL_PROGRESS_KEY = "lumen.progress.legal";
+const SIM_ID = "debtsSim";
+const ACH_KEY = "legal_debts_penalty";
+
+function safeParseJson(str, fallback) {
+  try {
+    const v = JSON.parse(str);
+    return v ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function isLegalSimAlreadyCompleted(simId) {
+  const raw = localStorage.getItem(LS_LEGAL_PROGRESS_KEY);
+  const data = safeParseJson(raw, { sims: {} });
+  return Boolean(data?.sims?.[simId]?.completed);
+}
+
+function markLegalSimVisitedInLS(simId) {
+  const raw = localStorage.getItem(LS_LEGAL_PROGRESS_KEY);
+  const data = safeParseJson(raw, { sims: {} });
+  const prev = data?.sims?.[simId] || {};
+
+  const next = {
+    ...data,
+    sims: {
+      ...(data.sims || {}),
+      [simId]: {
+        ...prev,
+        visited: true,
+        visitedAt: prev.visitedAt || new Date().toISOString(),
+      },
+    },
+  };
+
+  localStorage.setItem(LS_LEGAL_PROGRESS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("lumen:progress-updated"));
+}
+
+function markLegalSimCompletedInLS({ simId }) {
+  const raw = localStorage.getItem(LS_LEGAL_PROGRESS_KEY);
+  const data = safeParseJson(raw, { sims: {} });
+  const prev = data?.sims?.[simId] || {};
+
+  const next = {
+    ...data,
+    sims: {
+      ...(data.sims || {}),
+      [simId]: {
+        ...prev,
+        visited: true,
+        visitedAt: prev.visitedAt || new Date().toISOString(),
+        completed: true,
+        completedAt: prev.completedAt || new Date().toISOString(),
+      },
+    },
+  };
+
+  localStorage.setItem(LS_LEGAL_PROGRESS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event("lumen:progress-updated"));
+}
+
 const Debts = () => {
   const navigate = useNavigate();
   const chatEndRef = useRef(null);
+  const { token } = useAuth();
 
-  // --- СТАН ЧАТУ ---
   const [messages, setMessages] = useState([
     { id: 1, author: 'Пані Олена (Власниця)', text: 'Доброго ранку! Сьогодні 5-те число. Нагадую, що чекаю оплату за квартиру (8000 грн).', isUser: false }
   ]);
-  const [chatState, setChatState] = useState('start'); // етапи: start, waiting, success, fail
+  const [chatState, setChatState] = useState('start');
 
-  // Автоскрол вниз
+  const [savedOnce, setSavedOnce] = useState(() => isLegalSimAlreadyCompleted(SIM_ID));
+
+  useEffect(() => {
+    markLegalSimVisitedInLS(SIM_ID);
+  }, []);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // --- ЛОГІКА ВИБОРУ ---
   const handleChoice = (choice) => {
-    // 1. Додаємо повідомлення юзера
     const userMsg = { id: Date.now(), author: 'Ви', text: choice.text, isUser: true };
     setMessages(prev => [...prev, userMsg]);
     setChatState('waiting');
 
-    // 2. Відповідь "власниці" через 1.5 секунди
     setTimeout(() => {
       let responseText = "";
       let nextState = "";
-      
+
       if (choice.type === 'honest') {
         responseText = "Дякую, що попередив заздалегідь! Добре, почекаю до 8-го. Пеню нараховувати не буду, але прошу більше не затримувати.";
         nextState = 'success';
@@ -72,12 +138,30 @@ const Debts = () => {
     setChatState('start');
   };
 
+  useEffect(() => {
+    async function saveIfSuccess() {
+      if (chatState !== "success") return;
+      if (savedOnce) return;
+
+      setSavedOnce(true);
+      markLegalSimCompletedInLS({ simId: SIM_ID });
+
+      try {
+        if (token) {
+          await legalContentApi.complete(token, ACH_KEY);
+        }
+      } catch (_) {}
+    }
+
+    saveIfSuccess();
+  }, [chatState, savedOnce, token]);
+
   return (
     <DebtsWrapper>
       <DebtsHeader>
         <HeaderTitle>Борги та Пеня</HeaderTitle>
-        <button 
-          onClick={() => navigate('/legal')} 
+        <button
+          onClick={() => navigate('/legal')}
           style={{background:'none', border:'none', cursor:'pointer', fontWeight:'bold', display:'flex', alignItems:'center', gap:'5px'}}
         >
            Вихід <FiArrowRight />
@@ -85,7 +169,6 @@ const Debts = () => {
       </DebtsHeader>
 
       <DebtsMain>
-        {/* --- ТЕОРІЯ --- */}
         <StorySection>
           <ConceptBlock>
             <h3><FiDollarSign /> Борг (Debt)</h3>
@@ -105,13 +188,9 @@ const Debts = () => {
             </ul>
           </ConceptBlock>
 
-          <MascotDecoration>
-            {/* <img src={mosquitoImg} alt="Комар" style={{width: '100%'}} /> */}
-            🦟
-          </MascotDecoration>
+          <MascotDecoration>🦟</MascotDecoration>
         </StorySection>
 
-        {/* --- СИМУЛЯТОР --- */}
         <h2 style={{textAlign: 'center', marginBottom: '10px'}}>🔥 Симулятор: Уникни пені!</h2>
         <p style={{textAlign: 'center', marginBottom: '20px', color: '#666'}}>
           Ситуація: У тебе не вистачає 500 грн. Зарплата буде через 3 дні. <br/>
@@ -131,7 +210,7 @@ const Debts = () => {
             ))}
             <div ref={chatEndRef} />
           </ChatBody>
-          
+
           <ChatControls>
             {chatState === 'start' && (
               <ChoicesGrid>
@@ -166,10 +245,8 @@ const Debts = () => {
                 <br/><button onClick={restartChat} style={{marginTop:'10px', padding:'5px 10px', cursor:'pointer'}}>Спробувати ще раз</button>
               </ResultBadge>
             )}
-
           </ChatControls>
         </SimulatorWrapper>
-
       </DebtsMain>
     </DebtsWrapper>
   );

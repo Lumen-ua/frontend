@@ -1,14 +1,16 @@
 import styled from 'styled-components';
 
-// Головна обгортка сторінки
 export const LegalPageWrapper = styled.div`
   background-color: #F8F9FA;
   min-height: 100vh;
   padding-bottom: 40px;
   font-family: sans-serif;
 `;
+export const LegalContainer = styled.div`
+  max-width: var(--container-max, 1120px);
+  margin: 0 auto;
+`;
 
-// Хедер (помаранчевий блок)
 export const LegalHeader = styled.header`
   background-color: #FFA726;
   padding: 30px;
@@ -42,7 +44,6 @@ export const LegalHeaderIconWrapper = styled.div`
   color: #1A1A1A;
 `;
 
-// Синій бейдж прогресу
 export const LegalProgressBadge = styled.div`
   position: absolute;
   bottom: -15px;
@@ -55,7 +56,6 @@ export const LegalProgressBadge = styled.div`
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 `;
 
-// Сітка для карток
 export const LegalGrid = styled.main`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -68,7 +68,6 @@ export const LegalGrid = styled.main`
   }
 `;
 
-// Картка
 export const LegalCard = styled.article`
   background-color: #FFFFFF;
   border-radius: 12px;
@@ -95,7 +94,6 @@ export const LegalCardTitle = styled.h2`
   margin-top: 15px;
 `;
 
-// Секція матеріалів (Footer)
 export const LegalMaterialsSection = styled.section`
   background-color: #FFFFFF;
   margin: 0 30px;
