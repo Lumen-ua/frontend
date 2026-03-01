@@ -49,6 +49,7 @@ import {
 import { useAuth } from "../../context/AuthContext.jsx"; 
 import { resolveAvatarSrc } from "../../utils/avatar";  
 import { budgetContentApi } from "../../api/budgetContent"; 
+import { dashboardApi } from "../../api/payments";
 
 const LS_PROGRESS_KEY = "lumen.progress.budget";
 
@@ -90,6 +91,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("main");
 
   const { user, token, updateProfile, uploadAvatar } = useAuth();
+
+  const [dashboardData, setDashboardData] = useState({ approvedCount: 0, level: "" });
 
   const goalRecommendations = useMemo(
     () => ({
@@ -157,6 +160,22 @@ export default function Profile() {
       alive = false;
     };
   }, [token]);
+  
+  useEffect(() => {
+    async function loadDashboardStats() {
+      try {
+        if (!token) return;
+        const res = await dashboardApi.get(token); 
+        setDashboardData({
+          approvedCount: res.approvedCount || 0,
+          level: res.level || ""
+        });
+      } catch (err) {
+        console.error("Помилка завантаження статистики", err);
+      }
+    }
+    loadDashboardStats();
+  }, [token]);
 
   const [completedFromLS, setCompletedFromLS] = useState(() =>
     Array.from(getCompletedAchievementsFromLS())
@@ -203,9 +222,13 @@ export default function Profile() {
       { key: "tips_10", title: "Побутовий Філософ", desc: "Переглянути 10 порад", done: false },
       { key: "eco_all", title: "Еко-Гуру", desc: "Прочитати всі поради в розділі економії", done: false },
 
+      { key: "first_payment", title: "Перша сплата", desc: "Ви зробили свою першу оплату в системі", done: dashboardData.approvedCount >= 1 },
+      { key: "payment_master", title: "Майстер платежів", desc: "5 успішних оплат", done: dashboardData.approvedCount >= 5 },
+      { key: "level_pro", title: "Досвідчений користувач", desc: "Досягнуто рівня Легенда ЖКГ", done: dashboardData.approvedCount >= 10 },
+
       { key: "profile_filled", title: "Я у домі!", desc: "Заповнити профіль", done: true },
     ],
-    [completedSet]
+    [completedSet, dashboardData]
   );
 
   const achievementsReceived = achievementsData.filter((a) => a.done).length;

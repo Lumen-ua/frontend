@@ -11,7 +11,7 @@ export const getPaymentsPageData = () => {
 export const payService = () => {
   return Promise.resolve(mockData.paymentResult)
 }
-/* ������� ������ */
+
 export const PayCard = styled.div`
   background: linear-gradient(135deg, #fff3e0, #ffffff);
   border-radius: 18px;
@@ -20,13 +20,16 @@ export const PayCard = styled.div`
   border: 2px dashed #ffd478;
   transition: 0.25s;
 
+  @media (max-width: 480px) {
+    padding: 15px; 
+  }
+
   &:hover {
     background: linear-gradient(135deg, #ffdea980, #f7f1e0);
     transform: translateY(-2px);
   }
-`
+`;
 
-/* ���� ����� */
 export const Field = styled.input`
   width: 100%;
   padding: 11px 12px;
@@ -41,7 +44,7 @@ export const Field = styled.input`
     border-color: ${({ $invalid }) => ($invalid ? "#e53935" : "#ffad32")};
     background: ${({ $invalid }) => ($invalid ? "#ffebee" : "#fff8f1")};
   }
-`
+`;
 
 export const Select = styled.select`
   width: 100%;
@@ -57,9 +60,8 @@ export const Select = styled.select`
     border-color: #ff9800;
     background: #fff8f1;
   }
-`
+`;
 
-/* ������ */
 export const Button = styled.button`
   width: ${({ $tab }) => ($tab ? "auto" : "100%")};
   padding: 12px 18px;
@@ -72,12 +74,18 @@ export const Button = styled.button`
   transition: 0.25s;
   white-space: nowrap;
 
+  @media (max-width: 480px) {
+    padding: 10px 14px;
+    font-size: 14px;
+    flex-grow: 1; 
+    text-align: center;
+  }
+
   &:hover {
     background: ${({ $active }) => ($active ? "#fb8c00" : "#ffc561")};
     transform: translateY(-1px);
   }
 `;
-
 
 export const ErrorBox = styled.div`
   background: #ffebee;
@@ -86,7 +94,7 @@ export const ErrorBox = styled.div`
   border-radius: 10px;
   margin-bottom: 14px;
   font-weight: 700;
-`
+`;
 
 export const SuccessBox = styled.div`
   background: #e8f5e9;
@@ -95,28 +103,25 @@ export const SuccessBox = styled.div`
   border-radius: 10px;
   margin-bottom: 16px;
   font-weight: 700;
-`
+`;
 
-/* ������ ������� */
 export const HistoryItem = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center; 
   padding: 15px;
   border-radius: 10px;
   margin-bottom: 10px;
+  gap: 10px;
 
-  background: ${props =>
-    props.$status === "refunded" ? "#f3f3f3" : "white"};
+  background: ${props => props.$status === "refunded" ? "#f3f3f3" : "white"};
+  opacity: ${props => props.$status === "refunded" ? 0.6 : 1};
 
-  opacity: ${props =>
-    props.$status === "refunded" ? 0.6 : 1};
-
-  filter: ${props =>
-    props.$status === "refunded" ? "grayscale(30%)" : "none"};
-
-  transition: 0.3s;
+  @media (max-width: 400px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
-
 
 export const BackButton = styled.button`
   background: none;
@@ -131,7 +136,7 @@ export const BackButton = styled.button`
   &:hover {
     text-decoration: underline;
   }
-`
+`;
 
 export const HistoryCard = styled.div`
   background: #ffffff;
@@ -139,9 +144,8 @@ export const HistoryCard = styled.div`
   padding: 20px;
   margin-bottom: 20px;
   border: 2px solid #ff9800;
-`
+`;
 
-/* ������� */
 export const Template = styled.div`
   background: #fff;
   border-radius: 16px;
@@ -159,7 +163,8 @@ export const Template = styled.div`
   strong {
     color: #ff8400;
   }
-`
+`;
+
 export const StatusBadge = styled.div`
   display: inline-block;
   margin-top: 4px;
@@ -182,10 +187,17 @@ export const TimerText = styled.div`
   color: #ff6f00;
   font-weight: 700;
 `;
+
 export const TabsRow = styled.div`
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  
+  flex-wrap: wrap;
+
+  @media (max-width: 480px) {
+    gap: 8px; 
+  }
 `;
 
 export const LevelSection = styled.div`
