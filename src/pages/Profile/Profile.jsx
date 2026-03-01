@@ -52,20 +52,11 @@ import { resolveAvatarSrc } from "../../utils/avatar";
 import { budgetContentApi } from "../../api/budgetContent";
 import { legalContentApi } from "../../api/legalContent";
 import { dashboardApi } from "../../api/payments";
+import { repairsApi } from "../../api/repairsApi";
 
-// ✅ base localStorage keys (будуть scoped на юзера)
-const LS_BUDGET_PROGRESS_KEY = "lumen.progress.budget";
-const LS_LEGAL_PROGRESS_KEY = "lumen.progress.legal";
-const LS_ENERGY_PROGRESS_KEY = "lumen.progress.energy";
-const LS_ACHIEVEMENTS_KEY = "lumen.achievements";
+const LS_PROGRESS_KEY = "lumen.progress.budget";
 
-// ✅ Energy achievement
-const ENERGY_SECTION_ACHIEVEMENT_ID = "energy_energy_saving";
-const ENERGY_SECTION_ACH_TITLE = "Енергоефективність: усе пройдено";
-const ENERGY_TOPICS = ["lighting", "heating", "appliances", "water", "smart-home"];
-
-// ✅ мапи "симуляція -> ключ досягнення"
-const BUDGET_SIM_TO_ACHIEVEMENT_KEY = {
+const SIM_TO_ACHIEVEMENT_KEY = {
   readBillSim: "budget_read_bill",
   readIndicatorsSim: "budget_calculate_indicators",
   billDetectiveSim: "budget_why_different_sums",
@@ -163,16 +154,9 @@ export default function Profile() {
 
   const { user, token, updateProfile, uploadAvatar, logout } = useAuth();
 
-  // ✅ scoped keys під конкретного юзера
-  const budgetLsKey = useMemo(() => scopedKey(LS_BUDGET_PROGRESS_KEY, user), [user]);
-  const legalLsKey = useMemo(() => scopedKey(LS_LEGAL_PROGRESS_KEY, user), [user]);
-  const energyLsKey = useMemo(() => scopedKey(LS_ENERGY_PROGRESS_KEY, user), [user]);
-  const achLsKey = useMemo(() => scopedKey(LS_ACHIEVEMENTS_KEY, user), [user]);
+  const [dashboardData, setDashboardData] = useState({ approvedCount: 0, level: "" });
 
-  const [dashboardData, setDashboardData] = useState({
-    approvedCount: 0,
-    level: "",
-  });
+  const [completedRepairsAchievements, setCompletedRepairsAchievements] = useState([]);
 
   const goalRecommendations = useMemo(
     () => ({
@@ -294,19 +278,34 @@ export default function Profile() {
     loadDashboardStats();
   }, [token]);
 
-  // ✅ localStorage: бюджет + легал + achievements + energy (scoped)
-  const [completedFromLS, setCompletedFromLS] = useState(() => {
-    const s = new Set();
+  useEffect(() => {
+    let alive = true;
 
-    getCompletedFromLS(budgetLsKey, BUDGET_SIM_TO_ACHIEVEMENT_KEY).forEach((k) => s.add(k));
-    getCompletedFromLS(legalLsKey, LEGAL_SIM_TO_ACHIEVEMENT_KEY).forEach((k) => s.add(k));
+    async function loadRepairsAchievements() {
+      try {
+        if (!token) return;
 
-    // ✅ achievements + енерго розділ
-    readAchievementsFromLS(achLsKey).forEach((k) => s.add(k));
-    if (isEnergySectionCompleted(energyLsKey)) s.add(ENERGY_SECTION_ACHIEVEMENT_ID);
+        const res = await repairsApi.getAll(token);
 
-    return Array.from(s);
-  });
+        const raw = res?.completedAchievementsJson ?? "[]";
+        const parsed = JSON.parse(raw);
+
+        if (alive) {
+          setCompletedRepairsAchievements(Array.isArray(parsed) ? parsed : []);
+        }
+      } catch {
+        if (alive) setCompletedRepairsAchievements([]);
+      }
+    }
+    loadRepairsAchievements();
+    return () => { 
+      alive = false; 
+    };
+  }, [token]);
+
+  const [completedFromLS, setCompletedFromLS] = useState(() =>
+    Array.from(getCompletedAchievementsFromLS())
+  );
 
   useEffect(() => {
     const syncFromLS = () => {
@@ -350,8 +349,9 @@ export default function Profile() {
     completedBudgetSims.forEach((k) => s.add(k));
     completedLegalSims.forEach((k) => s.add(k));
     completedFromLS.forEach((k) => s.add(k));
+    completedRepairsAchievements.forEach((k) => s.add(k));
     return s;
-  }, [completedBudgetSims, completedLegalSims, completedFromLS]);
+  }, [completedBudgetSims, completedFromLS, completedRepairsAchievements]);
 
   const achievementsData = useMemo(
     () => [
@@ -385,6 +385,8 @@ export default function Profile() {
       { key: "first_payment", title: "Перша сплата", desc: "Ви зробили свою першу оплату в системі", done: dashboardData.approvedCount >= 1 },
       { key: "payment_master", title: "Майстер платежів", desc: "5 успішних оплат", done: dashboardData.approvedCount >= 5 },
       { key: "level_pro", title: "Досвідчений користувач", desc: "Досягнуто рівня Легенда ЖКГ", done: dashboardData.approvedCount >= 10 },
+
+      { key: "perfect_flat", title: "Ідеальна квартира", desc: "Проведіть чистку всіх приладів", done: completedSet.has("perfect_flat") },
 
       { key: "profile_filled", title: "Я у домі!", desc: "Заповнити профіль", done: true },
     ],

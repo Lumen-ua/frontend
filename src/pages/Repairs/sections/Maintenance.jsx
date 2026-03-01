@@ -69,6 +69,7 @@ const getDaysLeftText = (lastCleaned, intervalDays) => {
 export default function MaintenanceSection(){
     const token = localStorage.getItem("lumen_token");
     const [maintenanceState, setMaintenanceState] = useState({});
+    const [achievementSent, setAchievementSent] = useState(false);
 
     //завантаження з серверу
     useEffect(() => {
@@ -143,6 +144,30 @@ export default function MaintenanceSection(){
         return Math.round((greenCount / total) * 100);
     };
     const flatStatus = calculateFlatStatus();
+
+    useEffect(() => {
+        if (!token) return;
+        if (!Object.keys(maintenanceState).length) return;
+        if (achievementSent) return;
+
+        const allGreen = Object.keys(APPLIANCES).every(id => {
+            const lastCleaned = maintenanceState[id];
+            return getStatusColor(
+                lastCleaned,
+                APPLIANCES[id].intervalDays
+            ) === '#69F0AE';
+        });
+
+        if (allGreen) {
+            repairsApi.addAchievement(
+                { key: "perfect_flat" },
+                token
+            ).then(() => {
+                setAchievementSent(true);
+            }).catch(() => null);
+        }
+
+    }, [maintenanceState, token, achievementSent]);
 
     return(
         <>
